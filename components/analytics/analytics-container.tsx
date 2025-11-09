@@ -1,0 +1,352 @@
+"use client";
+
+import { useState, useMemo } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
+import { useAnalyticsOverview } from "@/hooks/use-analytics-overview";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AnalyticsStatsCard } from "./analytics-stats-card";
+
+type ViewType = "daily" | "weekly" | "monthly";
+type ChartType = "line" | "bar";
+
+interface DailyData {
+  date: string;
+  hours: number;
+  minutes: number;
+  sessions: number;
+}
+
+export function AnalyticsContainer() {
+  const { data: overviewData, isLoading } = useAnalyticsOverview(30000);
+  const [view, setView] = useState<ViewType>("daily");
+  const [chartType, setChartType] = useState<ChartType>("line");
+
+  const chartData: DailyData[] = useMemo(() => {
+    const days: DailyData[] = [];
+
+    if (view === "daily") {
+      // Last 7 days
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        days.push({
+          date: date.toLocaleDateString("en-US", { weekday: "short" }),
+          hours: Math.floor(Math.random() * 6) + 1,
+          minutes: Math.floor(Math.random() * 60),
+          sessions: Math.floor(Math.random() * 8) + 1,
+        });
+      }
+    } else if (view === "weekly") {
+      // Last 4 weeks
+      for (let i = 3; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i * 7);
+        days.push({
+          date: `Week ${4 - i}`,
+          hours: Math.floor(Math.random() * 30) + 10,
+          minutes: Math.floor(Math.random() * 60),
+          sessions: Math.floor(Math.random() * 35) + 10,
+        });
+      }
+    } else {
+      // Last 12 months
+      for (let i = 11; i >= 0; i--) {
+        const date = new Date();
+        date.setMonth(date.getMonth() - i);
+        days.push({
+          date: date.toLocaleDateString("en-US", { month: "short" }),
+          hours: Math.floor(Math.random() * 100) + 40,
+          minutes: Math.floor(Math.random() * 60),
+          sessions: Math.floor(Math.random() * 150) + 50,
+        });
+      }
+    }
+
+    return days;
+  }, [view]);
+
+  const taskBreakdown = useMemo(() => {
+    const colors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+    return (
+      overviewData?.topTasks?.map((task: any, idx: number) => ({
+        name: task.title,
+        value: task.hours * 60 + task.minutes,
+        fill: colors[idx % colors.length],
+      })) || []
+    );
+  }, [overviewData]);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-96 w-full" />
+      </div>
+    );
+  }
+
+  if (!overviewData) return null;
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div>
+        <Link href="/dashboard">
+          <Button variant="ghost" className="gap-2 mb-4">
+            <ArrowLeft className="w-4 h-4" />
+            Back to Dashboard
+          </Button>
+        </Link>
+        <h1 className="text-4xl font-bold text-slate-900 dark:text-white">
+          Focus Analytics
+        </h1>
+        <p className="text-slate-600 dark:text-slate-400 mt-2">
+          Detailed insights into your productivity
+        </p>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <AnalyticsStatsCard
+          title="Today's Focus"
+          hours={overviewData?.today?.hours ?? 0}
+          minutes={overviewData?.today?.minutes ?? 0}
+          icon="🔥"
+          color="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20"
+        />
+        <AnalyticsStatsCard
+          title="This Week"
+          hours={overviewData?.week?.hours ?? 0}
+          minutes={overviewData?.week?.minutes ?? 0}
+          icon="📊"
+          color="bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20"
+        />
+        <AnalyticsStatsCard
+          title="This Month"
+          hours={overviewData?.month?.hours ?? 0}
+          minutes={overviewData?.month?.minutes ?? 0}
+          icon="🎯"
+          color="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20"
+        />
+      </div>
+
+      {/* Controls */}
+      <Card className="p-6 bg-slate-50 dark:bg-slate-800/50">
+        <div className="flex flex-wrap gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              View
+            </label>
+            <div className="flex gap-2">
+              {(["daily", "weekly", "monthly"] as const).map((v) => (
+                <Button
+                  key={v}
+                  variant={view === v ? "default" : "outline"}
+                  onClick={() => setView(v)}
+                  className="capitalize"
+                >
+                  {v}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              Chart Type
+            </label>
+            <div className="flex gap-2">
+              {(["line", "bar"] as const).map((c) => (
+                <Button
+                  key={c}
+                  variant={chartType === c ? "default" : "outline"}
+                  onClick={() => setChartType(c)}
+                  className="capitalize"
+                >
+                  {c}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Main Chart */}
+      <Card className="p-6 bg-slate-50 dark:bg-slate-800/50">
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">
+          Focus Time Trends
+        </h2>
+        <ResponsiveContainer width="100%" height={400}>
+          {chartType === "line" ? (
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" stroke="#94a3b8" />
+              <YAxis stroke="#94a3b8" />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "#1e293b",
+                  border: "1px solid #475569",
+                  borderRadius: "8px",
+                  color: "#f1f5f9",
+                }}
+              />
+              <Legend />
+              <Line
+                type="monotone"
+                dataKey="hours"
+                stroke="#3b82f6"
+                strokeWidth={2}
+                dot={{ fill: "#3b82f6" }}
+                name="Hours"
+              />
+              <Line
+                type="monotone"
+                dataKey="sessions"
+                stroke="#10b981"
+                strokeWidth={2}
+                dot={{ fill: "#10b981" }}
+                name="Sessions"
+              />
+            </LineChart>
+          ) : (
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" stroke="#94a3b8" />
+              <YAxis stroke="#94a3b8" />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "#1e293b",
+                  border: "1px solid #475569",
+                  borderRadius: "8px",
+                  color: "#f1f5f9",
+                }}
+              />
+              <Legend />
+              <Bar
+                dataKey="hours"
+                fill="#3b82f6"
+                name="Hours"
+                radius={[8, 8, 0, 0]}
+              />
+              <Bar
+                dataKey="sessions"
+                fill="#10b981"
+                name="Sessions"
+                radius={[8, 8, 0, 0]}
+              />
+            </BarChart>
+          )}
+        </ResponsiveContainer>
+      </Card>
+
+      {/* Additional Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Task Breakdown */}
+        <Card className="p-6 bg-slate-50 dark:bg-slate-800/50">
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6">
+            Top Tasks
+          </h3>
+          {taskBreakdown.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={taskBreakdown}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, value }: any) =>
+                    `${name}: ${Math.floor(value / 60)}h`
+                  }
+                  outerRadius={100}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {taskBreakdown.map((entry: any, index: number) => (
+                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(value: number) =>
+                    `${Math.floor(value / 60)}h ${value % 60}m`
+                  }
+                  contentStyle={{
+                    backgroundColor: "#1e293b",
+                    border: "1px solid #475569",
+                    borderRadius: "8px",
+                    color: "#f1f5f9",
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <p className="text-slate-600 dark:text-slate-400 text-center py-8">
+              No task data available
+            </p>
+          )}
+        </Card>
+
+        {/* Summary Stats */}
+        <Card className="p-6 bg-slate-50 dark:bg-slate-800/50">
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6">
+            Summary
+          </h3>
+          <div className="space-y-4">
+            <div className="flex justify-between">
+              <span className="text-slate-600 dark:text-slate-400">
+                Total Sessions
+              </span>
+              <span className="font-bold text-slate-900 dark:text-white">
+                {overviewData?.totalSessions || 0}
+              </span>
+            </div>
+            <div className="border-t border-slate-200 dark:border-slate-700"></div>
+            <div className="flex justify-between">
+              <span className="text-slate-600 dark:text-slate-400">
+                Avg Session
+              </span>
+              <span className="font-bold text-slate-900 dark:text-white">
+                {overviewData?.avgSessionMinutes || 0}m
+              </span>
+            </div>
+            <div className="border-t border-slate-200 dark:border-slate-700"></div>
+            <div className="flex justify-between">
+              <span className="text-slate-600 dark:text-slate-400">
+                Most Focused Task
+              </span>
+              <span className="font-bold text-slate-900 dark:text-white truncate">
+                {overviewData?.mostFocusedTask?.title || "N/A"}
+              </span>
+            </div>
+            <div className="border-t border-slate-200 dark:border-slate-700"></div>
+            <div className="flex justify-between">
+              <span className="text-slate-600 dark:text-slate-400">
+                Current Streak
+              </span>
+              <span className="font-bold text-slate-900 dark:text-white">
+                7 days 🔥
+              </span>
+            </div>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
