@@ -1,0 +1,79 @@
+"use client";
+
+import React from "react";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Trophy, Timer } from "lucide-react";
+
+interface TopTask {
+  id: string;
+  title: string;
+  priority: string | null;
+  hours: number;
+  minutes: number;
+  sessionCount: number;
+}
+
+interface TopTasksListProps {
+  tasks: TopTask[];
+}
+
+const priorityColors: Record<string, string> = {
+  low: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300",
+  medium: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300",
+  high: "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300",
+};
+
+export function TopTasksList({ tasks }: TopTasksListProps) {
+  return (
+    <Card className="p-6">
+      <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+        <Trophy className="w-5 h-5 text-yellow-500" />
+        Top 5 Tasks by Focus Time
+      </h3>
+
+      {tasks.length === 0 ? (
+        <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+          <p className="text-sm">No focus sessions yet</p>
+          <p className="text-xs mt-1">Start working on tasks to see your top performers!</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {tasks.map((task, index) => (
+            <div
+              key={task.id}
+              className="flex items-center gap-3 p-4 rounded-lg bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors"
+            >
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 text-white font-bold text-sm">
+                {index + 1}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                  {task.title}
+                </p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                    <Timer className="w-3 h-3" />
+                    {task.hours}h {task.minutes % 60}m
+                  </span>
+                  <span className="text-xs text-slate-400">•</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    {task.sessionCount} sessions
+                  </span>
+                </div>
+              </div>
+              {task.priority && (
+                <Badge
+                  variant="secondary"
+                  className={`text-xs ${priorityColors[task.priority.toLowerCase()]}`}
+                >
+                  {task.priority}
+                </Badge>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}

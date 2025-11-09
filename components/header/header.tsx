@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, LogOut, User, Menu } from "lucide-react";
+import { Moon, Sun, LogOut, User } from "lucide-react";
 import { useTheme } from "next-themes";
 
 interface HeaderProps {
@@ -37,7 +37,12 @@ export function Header({ user }: HeaderProps) {
 
         <div className="flex items-center gap-4">
           {/* Theme Toggle */}
-          <Button variant="ghost" size="icon" onClick={toggleTheme}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            aria-label="Toggle theme"
+          >
             {mounted && theme === "dark" ? (
               <Sun className="w-5 h-5" />
             ) : (
@@ -74,7 +79,7 @@ export function Header({ user }: HeaderProps) {
                   <div className="p-2">
                     <Button
                       variant="ghost"
-                      onClick={() => signOut({ callbackUrl: "/auth/login" })}
+                      onClick={() => signOut({ callbackUrl: "/auth/signin" })}
                       className="w-full justify-start gap-2 text-red-600"
                     >
                       <LogOut className="w-4 h-4" />

@@ -1,53 +1,132 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 
-html,
+@theme {
+  --color-background: light-dark(#ffffff, #0a0a0a);
+  --color-foreground: light-dark(#09090b, #fafafa);
+
+  --color-card: light-dark(#ffffff, #18181b);
+  --color-card-foreground: light-dark(#09090b, #fafafa);
+
+  --color-popover: light-dark(#ffffff, #18181b);
+  --color-popover-foreground: light-dark(#09090b, #fafafa);
+
+  --color-primary: light-dark(#3b82f6, #60a5fa);
+  --color-primary-foreground: light-dark(#ffffff, #18181b);
+
+  --color-secondary: light-dark(#f1f5f9, #27272a);
+  --color-secondary-foreground: light-dark(#18181b, #fafafa);
+
+  --color-muted: light-dark(#f1f5f9, #27272a);
+  --color-muted-foreground: light-dark(#64748b, #a1a1aa);
+
+  --color-accent: light-dark(#f1f5f9, #27272a);
+  --color-accent-foreground: light-dark(#18181b, #fafafa);
+
+  --color-destructive: light-dark(#ef4444, #dc2626);
+  --color-destructive-foreground: light-dark(#ffffff, #fafafa);
+
+  --color-border: light-dark(#e2e8f0, #27272a);
+  --color-input: light-dark(#e2e8f0, #27272a);
+  --color-ring: light-dark(#3b82f6, #3b82f6);
+
+  --radius: 0.5rem;
+}
+
 body {
-  height: 100%;
-  width: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-  margin: 0;
-  padding: 0;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
 }
 
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* Toast stacking styles */
+[data-sonner-toaster] {
+  --normal-bg: hsl(var(--background));
+  --normal-border: hsl(var(--border));
+  --normal-text: hsl(var(--foreground));
+  --success-bg: hsl(142.1 76.2% 36.3%);
+  --success-border: hsl(142.1 70.6% 45.3%);
+  --success-text: hsl(0 0% 100%);
+  --error-bg: hsl(0 84.2% 60.2%);
+  --error-border: hsl(0 72.2% 50.6%);
+  --error-text: hsl(0 0% 100%);
+  --info-bg: hsl(221.2 83.2% 53.3%);
+  --info-border: hsl(217.2 91.2% 59.8%);
+  --info-text: hsl(0 0% 100%);
+  --warning-bg: hsl(38.2 92.9% 50.2%);
+  --warning-border: hsl(36.1 77.2% 49.4%);
+  --warning-text: hsl(0 0% 100%);
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
+[data-sonner-toast] {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(10px);
 }
 
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
+[data-sonner-toast][data-styled="true"] {
+  padding: 16px;
+  gap: 8px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+/* Dark mode toast colors */
+.dark [data-sonner-toaster] {
+  --normal-bg: hsl(var(--card));
+  --normal-border: hsl(var(--border));
+  --normal-text: hsl(var(--foreground));
 }
 
-.dark ::-webkit-scrollbar-thumb {
-  background: #475569;
+/* Ensure toasts stack properly */
+[data-sonner-toaster][data-y-position="bottom"] {
+  bottom: 0;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 8px;
 }
 
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
+[data-sonner-toaster][data-y-position="top"] {
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-@layer base {
-  /* Remove all unwanted borders and outlines */
-  * {
-    border: none !important;
-    outline: none !important;
-    background: none;
-    box-shadow: none;
+/* Smooth entrance and exit animations */
+[data-sonner-toast][data-mounted="true"] {
+  animation: slideIn 0.2s cubic-bezier(0.21, 1.02, 0.73, 1) forwards;
+}
+
+[data-sonner-toast][data-removed="true"] {
+  animation: slideOut 0.2s cubic-bezier(0.06, 0.71, 0.55, 1) forwards;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
   }
-
-  body {
-    @apply bg-gray-900 text-white;
+  to {
+    transform: translateY(0);
+    opacity: 1;
   }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+/* Hover effect */
+[data-sonner-toast]:hover {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
+  transition: all 0.2s ease;
+}
+
+/* Loading indicator */
+[data-sonner-toast][data-loading="true"] {
+  opacity: 0.8;
 }

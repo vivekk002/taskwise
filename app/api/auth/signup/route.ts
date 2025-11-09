@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password, name } = await req.json();
+    const { name, email, password, profession } = await req.json();
 
-    if (!email || !password) {
+    if (!name || !email || !password) {
       return NextResponse.json(
-        { error: "Email and password are required" },
+        { error: "Missing required fields" },
         { status: 400 }
       );
     }
@@ -31,24 +31,21 @@ export async function POST(req: NextRequest) {
     // Create user
     const user = await prisma.user.create({
       data: {
+        name,
         email,
         password: hashedPassword,
-        name: name || email.split("@")[0],
+        profession: profession || null,
       },
     });
 
     return NextResponse.json(
-      {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-      },
+      { message: "User created successfully", userId: user.id },
       { status: 201 }
     );
   } catch (error) {
     console.error("Signup error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Failed to create user" },
       { status: 500 }
     );
   }

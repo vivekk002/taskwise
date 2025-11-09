@@ -9,10 +9,6 @@ export default async function SignupPage() {
   if (session?.user?.id) {
     redirect("/dashboard");
   }
-  return (
-    <div className="max-w-md mx-auto my-10 p-6 rounded-md border shadow-md">
-      <h1 className="text-2xl font-bold mb-4 text-center">Sign Up</h1>
-      <SignupForm />
-    </div>
-  );
+
+  return <SignupForm />;
 }

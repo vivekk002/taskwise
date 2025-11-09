@@ -25,3 +25,5 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   return <SessionProvider>{children}</SessionProvider>;
 }
+
+// SignInForm.tsx & SignupForm.tsx stay as you provided, relying on shadcn/ui Buttons and Inputs.
