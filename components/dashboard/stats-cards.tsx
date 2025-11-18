@@ -49,7 +49,12 @@ export function StatsCards({ stats }: StatsCardsProps) {
     {
       title: "Tasks Today",
       value: `${stats.todayCompleted}/${stats.todayTasks}`,
-      subtitle: stats.todayTasks > 0 ? `${Math.round((stats.todayCompleted / stats.todayTasks) * 100)}% complete` : "No tasks",
+      subtitle:
+        stats.todayTasks > 0
+          ? `${Math.round(
+              (stats.todayCompleted / stats.todayTasks) * 100
+            )}% complete`
+          : "No tasks",
       icon: Target,
       color: "bg-green-500",
       bgColor: "bg-green-50 dark:bg-green-950/30",
@@ -67,11 +72,18 @@ export function StatsCards({ stats }: StatsCardsProps) {
     {
       title: "Active Tasks",
       value: stats.activeTasks,
-      subtitle: stats.overdueTasks > 0 ? `${stats.overdueTasks} overdue` : "On track",
+      subtitle:
+        stats.overdueTasks > 0 ? `${stats.overdueTasks} overdue` : "On track",
       icon: stats.overdueTasks > 0 ? AlertCircle : CheckCircle2,
       color: stats.overdueTasks > 0 ? "bg-red-500" : "bg-emerald-500",
-      bgColor: stats.overdueTasks > 0 ? "bg-red-50 dark:bg-red-950/30" : "bg-emerald-50 dark:bg-emerald-950/30",
-      textColor: stats.overdueTasks > 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400",
+      bgColor:
+        stats.overdueTasks > 0
+          ? "bg-red-50 dark:bg-red-950/30"
+          : "bg-emerald-50 dark:bg-emerald-950/30",
+      textColor:
+        stats.overdueTasks > 0
+          ? "text-red-600 dark:text-red-400"
+          : "text-emerald-600 dark:text-emerald-400",
     },
   ];
 

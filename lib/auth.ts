@@ -1,4 +1,4 @@
-import { NextAuthOptions } from "next-auth";
+import { NextAuthOptions, User, SessionStrategy } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
@@ -13,12 +13,13 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(
+        credentials: Record<"email" | "password", string> | undefined
+      ): Promise<User | null> {
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Please enter email and password");
         }
 
-        // Check if user exists
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
         });
@@ -27,27 +28,33 @@ export const authOptions: NextAuthOptions = {
           throw new Error("No account found with this email");
         }
 
+        if (!user.emailVerified) {
+          console.log("Not Verified");
+
+          throw new Error("EmailNotVerified");
+        }
+
         if (!user.password) {
           throw new Error(
             "Please sign in with OAuth provider (Google, GitHub, etc.)"
           );
         }
 
-        // Verify password
         const isPasswordValid = await bcrypt.compare(
           credentials.password,
           user.password
         );
 
         if (!isPasswordValid) {
+          console.log("User email unverified, throwing EmailNotVerified error");
+
           throw new Error("Incorrect password");
         }
 
         return {
           id: user.id,
           email: user.email,
-          name: user.name,
-          image: user.image,
+          name: user.name ?? undefined,
         };
       },
     }),
@@ -61,7 +68,7 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   session: {
-    strategy: "jwt",
+    strategy: "jwt" as SessionStrategy,
   },
   pages: {
     signIn: "/auth/signin",
@@ -69,13 +76,25 @@ export const authOptions: NextAuthOptions = {
     error: "/auth/signin",
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({
+      token,
+      user,
+    }: {
+      token: any;
+      user?: User | undefined;
+    }): Promise<any> {
       if (user) {
         token.id = user.id;
       }
       return token;
     },
-    async session({ session, token }) {
+    async session({
+      session,
+      token,
+    }: {
+      session: any;
+      token: any;
+    }): Promise<any> {
       if (session.user) {
         session.user.id = token.id as string;
       }

@@ -19,19 +19,27 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-export function SigninForm() {
+interface SigninFormProps {
+  emailValue: string;
+  onEmailChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  showResend?: boolean;
+}
+
+export function SigninForm({
+  emailValue,
+  onEmailChange,
+  showResend = false,
+}: SigninFormProps) {
   const router = useRouter();
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
+  const [resendStatus, setResendStatus] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.email || !formData.password) {
+    if (!emailValue || !password) {
       toast.error("Please fill in all fields");
       return;
     }
@@ -39,21 +47,24 @@ export function SigninForm() {
     setIsLoading(true);
 
     try {
+      // Use manual redirect false so we can handle errors and URLs ourselves
       const result = await signIn("credentials", {
         redirect: false,
-        email: formData.email,
-        password: formData.password,
+        email: emailValue,
+        password,
       });
 
       if (result?.error) {
-        // Show the specific error message from auth
-        toast.error(result.error);
+        if (result.error === "EmailNotVerified") {
+          // Redirect to signin with error query param so resend button appears
+          router.push("/auth/signin?error=EmailNotVerified");
+        } else {
+          toast.error(result.error);
+        }
       } else {
-        toast.success("Welcome back!");
         router.push("/dashboard");
       }
     } catch (error) {
-      console.error("Signin error:", error);
       toast.error("Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
@@ -64,11 +75,30 @@ export function SigninForm() {
     setOauthLoading(provider);
     try {
       await signIn(provider, { callbackUrl: "/dashboard" });
-    } catch (error) {
+    } catch {
       toast.error(`Failed to sign in with ${provider}`);
       setOauthLoading(null);
     }
   };
+
+  async function resendVerificationEmail() {
+    setResendStatus("");
+    try {
+      const res = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: emailValue }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setResendStatus(`Error: ${data.error || "Failed to send email"}`);
+      } else {
+        setResendStatus("Verification email sent! Please check your inbox.");
+      }
+    } catch {
+      setResendStatus("Network error. Please try again later.");
+    }
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-slate-950 dark:via-indigo-950 dark:to-purple-950 p-4">
@@ -100,6 +130,7 @@ export function SigninForm() {
               )}
               <span className="font-medium">Continue with Google</span>
             </Button>
+
             <Button
               variant="outline"
               className="w-full h-12 gap-2 border-2 hover:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
@@ -113,6 +144,7 @@ export function SigninForm() {
               )}
               <span className="font-medium">Continue with GitHub</span>
             </Button>
+
             <Button
               variant="outline"
               className="w-full h-12 gap-2 border-2 hover:border-sky-400 hover:bg-sky-50 dark:hover:bg-sky-950 transition-all"
@@ -149,10 +181,8 @@ export function SigninForm() {
                 id="email"
                 type="email"
                 placeholder="john@example.com"
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
+                value={emailValue}
+                onChange={onEmailChange}
                 disabled={isLoading}
                 required
                 className="h-12 border-2 focus:border-indigo-500 dark:focus:border-indigo-400 transition-colors"
@@ -174,14 +204,13 @@ export function SigninForm() {
                   Forgot password?
                 </Link>
               </div>
+
               <Input
                 id="password"
                 type="password"
                 placeholder="Enter your password"
-                value={formData.password}
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
-                }
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
                 required
                 className="h-12 border-2 focus:border-indigo-500 dark:focus:border-indigo-400 transition-colors"
@@ -206,6 +235,21 @@ export function SigninForm() {
               )}
             </Button>
           </form>
+
+          {showResend && (
+            <div className="mt-4">
+              <Button
+                onClick={resendVerificationEmail}
+                className="w-full"
+                variant="outline"
+              >
+                Resend Verification Email
+              </Button>
+              {resendStatus && (
+                <p className="mt-2 text-sm text-center">{resendStatus}</p>
+              )}
+            </div>
+          )}
 
           <p className="text-center text-sm text-slate-600 dark:text-slate-400 mt-6">
             Don't have an account?{" "}
