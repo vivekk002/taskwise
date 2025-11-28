@@ -1,7 +1,14 @@
 "use client";
 
 import React from "react";
-import { TrendingUp, TrendingDown, Clock, Target, Zap, CheckCircle2 } from "lucide-react";
+import {
+  TrendingUp,
+  TrendingDown,
+  Clock,
+  Target,
+  Zap,
+  CheckCircle2,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 interface AnalyticsStatsProps {
@@ -44,7 +51,11 @@ export function AnalyticsStats({ stats }: AnalyticsStatsProps) {
           ) : (
             <TrendingDown className="w-3 h-3 text-red-600" />
           )}
-          <span className={stats.weekChange >= 0 ? "text-green-600" : "text-red-600"}>
+          <span
+            className={
+              stats.weekChange >= 0 ? "text-green-600" : "text-red-600"
+            }
+          >
             {Math.abs(stats.weekChange).toFixed(1)}% vs last week
           </span>
         </span>
@@ -74,18 +85,25 @@ export function AnalyticsStats({ stats }: AnalyticsStatsProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {cards.map((card, index) => (
-        <Card key={index} className={`${card.bgColor} border-none p-6`}>
+        <Card
+          key={index}
+          className={`${card.bgColor} glass border-border/50 p-6`}
+        >
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">
+              <p className="text-sm font-medium text-muted-foreground mb-1">
                 {card.title}
               </p>
-              <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
+              <h3 className="text-2xl font-bold text-foreground mb-1">
                 {card.value}
               </h3>
-              <div className="text-xs text-slate-500">{card.subtitle}</div>
+              <div className="text-xs text-muted-foreground">
+                {card.subtitle}
+              </div>
             </div>
-            <div className={`${card.color} p-3 rounded-lg`}>
+            <div
+              className={`${card.color} p-3 rounded-lg shadow-lg shadow-primary/10`}
+            >
               <card.icon className="w-5 h-5 text-white" />
             </div>
           </div>

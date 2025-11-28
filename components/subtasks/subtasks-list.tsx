@@ -109,14 +109,14 @@ export function SubtasksList({
       {/* Progress Bar */}
       {totalCount > 0 && (
         <div className="space-y-1">
-          <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>Subtasks Progress</span>
             <span className="font-medium">
               {completedCount}/{totalCount} completed (
               {progressPercent.toFixed(0)}%)
             </span>
           </div>
-          <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+          <div className="h-2 bg-secondary rounded-full overflow-hidden">
             <div
               className="h-full bg-green-500 transition-all duration-300"
               style={{ width: `${progressPercent}%` }}
@@ -131,7 +131,7 @@ export function SubtasksList({
           {subtasks.map((subtask) => (
             <div
               key={subtask.id}
-              className="group flex items-center gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors"
+              className="group flex items-center gap-2 p-2 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
             >
               <Button
                 variant="ghost"
@@ -144,15 +144,15 @@ export function SubtasksList({
                 {subtask.completed ? (
                   <CheckCircle2 className="w-4 h-4 text-green-500" />
                 ) : (
-                  <Circle className="w-4 h-4 text-slate-400" />
+                  <Circle className="w-4 h-4 text-muted-foreground" />
                 )}
               </Button>
               <span
                 className={cn(
                   "text-sm flex-1",
                   subtask.completed
-                    ? "line-through text-slate-500"
-                    : "text-slate-900 dark:text-white"
+                    ? "line-through text-muted-foreground"
+                    : "text-foreground"
                 )}
               >
                 {subtask.title}
@@ -196,7 +196,7 @@ export function SubtasksList({
       </div>
 
       {subtasks.length === 0 && (
-        <p className="text-xs text-slate-500 dark:text-slate-400 text-center py-2">
+        <p className="text-xs text-muted-foreground text-center py-2">
           No subtasks yet. Add one to break down this task!
         </p>
       )}

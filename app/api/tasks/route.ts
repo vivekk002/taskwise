@@ -7,22 +7,81 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user?.id) {
+    if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const tasks = await prisma.task.findMany({
+    // Get user from database using email
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true }, // Only select what we need
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Get pagination parameters from query string
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "50");
+    const skip = (page - 1) * limit;
+
+    // Get total count for pagination
+    const totalCount = await prisma.task.count({
       where: {
-        userId: session.user.id,
+        userId: user.id,
         isDeleted: false,
       },
-      include: {
-        focusSessions: true,
-        subtasks: true,
+    });
+
+    const tasks = await prisma.task.findMany({
+      where: {
+        userId: user.id,
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        priority: true,
+        deadline: true,
+        completed: true,
+        categoryId: true,
+        estimatedDuration: true,
+        actualDuration: true,
+        order: true,
+        createdAt: true,
+        updatedAt: true,
+        category: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
+        focusSessions: {
+          select: {
+            duration: true,
+          },
+        },
+        subtasks: {
+          select: {
+            id: true,
+            title: true,
+            completed: true,
+            order: true,
+          },
+          orderBy: {
+            order: "asc",
+          },
+        },
       },
       orderBy: {
         order: "asc",
       },
+      skip,
+      take: limit,
     });
 
     // Calculate total focus time for each task
@@ -34,7 +93,16 @@ export async function GET(req: NextRequest) {
       ),
     }));
 
-    return NextResponse.json(tasksWithFocusTime);
+    return NextResponse.json({
+      tasks: tasksWithFocusTime,
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+        hasMore: skip + tasks.length < totalCount,
+      },
+    });
   } catch (error) {
     console.error("Error fetching tasks:", error);
     return NextResponse.json(

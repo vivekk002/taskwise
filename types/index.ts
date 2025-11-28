@@ -7,10 +7,10 @@ export interface Task {
   deadline?: Date | string | null;
   completed: boolean;
   isDeleted: boolean;
-  tags: string[];
   estimatedDuration?: number | null;
   actualDuration?: number | null;
   order: number;
+  categoryId?: string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
 }
@@ -37,9 +37,19 @@ export interface FocusSession {
   createdAt: Date | string;
 }
 
+export interface Category {
+  id: string;
+  userId: string;
+  name: string;
+  color: string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
 export interface TaskWithRelations extends Task {
   subtasks?: Subtask[];
   focusSessions?: FocusSession[];
+  category?: Category | null;
   totalFocusTime?: number;
 }
 

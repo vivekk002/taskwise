@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import { Card } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function StreakCard() {
   // Mock data - replace with actual streak hook later
-  const currentStreak = 7
+  const currentStreak = 7;
   const streakDays = [
     { date: "2024-11-02", hasFocus: true },
     { date: "2024-11-03", hasFocus: true },
@@ -14,16 +14,16 @@ export function StreakCard() {
     { date: "2024-11-06", hasFocus: true },
     { date: "2024-11-07", hasFocus: true },
     { date: "2024-11-08", hasFocus: true },
-  ]
+  ];
 
   return (
-    <Card className="p-6 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20">
+    <Card className="p-6 glass border-border/50 bg-gradient-to-br from-orange-50/50 to-red-50/50 dark:from-orange-900/10 dark:to-red-900/10">
       <div className="space-y-4">
         <div>
-          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+          <p className="text-sm font-medium text-muted-foreground">
             Current Streak
           </p>
-          <p className="text-4xl font-bold text-slate-900 dark:text-white mt-1">
+          <p className="text-4xl font-bold text-foreground mt-1">
             {currentStreak}
             <span className="text-2xl ml-2">days</span>
           </p>
@@ -46,10 +46,8 @@ export function StreakCard() {
           ))}
         </div>
 
-        <p className="text-xs text-slate-600 dark:text-slate-400">
-          Keep the focus going!
-        </p>
+        <p className="text-xs text-muted-foreground">Keep the focus going!</p>
       </div>
     </Card>
-  )
+  );
 }

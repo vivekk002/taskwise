@@ -3,20 +3,42 @@
 import { useState, useEffect } from "react";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, LogOut, User } from "lucide-react";
+import {
+  Moon,
+  Sun,
+  LogOut,
+  User,
+  ChevronDown,
+  ChevronRight,
+  Home,
+} from "lucide-react";
 import { useTheme } from "next-themes";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+import { MobileSidebar } from "@/components/sidebar/mobile-sidebar";
 
 interface HeaderProps {
   user: {
     name?: string | null;
     email?: string | null;
+    image?: string | null;
   };
 }
 
 export function Header({ user }: HeaderProps) {
   const { theme, setTheme } = useTheme();
-  const [showDropdown, setShowDropdown] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     setMounted(true);
@@ -26,13 +48,50 @@ export function Header({ user }: HeaderProps) {
     setTheme(theme === "dark" ? "light" : "dark");
   };
 
+  // Generate breadcrumbs
+  const paths = pathname.split("/").filter(Boolean);
+  const breadcrumbs = paths.map((path, index) => {
+    const href = `/${paths.slice(0, index + 1).join("/")}`;
+    const label = path.charAt(0).toUpperCase() + path.slice(1);
+    const isLast = index === paths.length - 1;
+
+    return { href, label, isLast };
+  });
+
   return (
-    <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4">
+    <header className="sticky top-0 z-40 w-full glass border-b border-border/50 px-6 py-3 transition-all duration-300">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            TaskWise
-          </h1>
+          <MobileSidebar />
+
+          {/* Breadcrumbs */}
+          <nav className="flex items-center gap-2 text-sm">
+            <Link
+              href="/dashboard"
+              prefetch={true}
+              className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            >
+              <Home className="w-4 h-4" />
+            </Link>
+            {breadcrumbs.map((crumb, index) => (
+              <div key={crumb.href} className="flex items-center gap-2">
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                {crumb.isLast ? (
+                  <span className="text-foreground font-medium">
+                    {crumb.label}
+                  </span>
+                ) : (
+                  <Link
+                    href={crumb.href}
+                    prefetch={true}
+                    className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  >
+                    {crumb.label}
+                  </Link>
+                )}
+              </div>
+            ))}
+          </nav>
         </div>
 
         <div className="flex items-center gap-4">
@@ -41,55 +100,55 @@ export function Header({ user }: HeaderProps) {
             variant="ghost"
             size="icon"
             onClick={toggleTheme}
+            className="rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground cursor-pointer"
             aria-label="Toggle theme"
           >
             {mounted && theme === "dark" ? (
-              <Sun className="w-5 h-5" />
+              <Sun className="w-5 h-5 text-yellow-500 transition-all" />
             ) : (
-              <Moon className="w-5 h-5" />
+              <Moon className="w-5 h-5 text-muted-foreground transition-all" />
             )}
           </Button>
 
           {/* User Menu */}
-          <div className="relative">
-            <Button
-              variant="ghost"
-              onClick={() => setShowDropdown(!showDropdown)}
-              className="gap-2"
-            >
-              <User className="w-5 h-5" />
-              <span className="hidden md:inline">{user.name || "User"}</span>
-            </Button>
-
-            {showDropdown && (
-              <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setShowDropdown(false)}
-                />
-                <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 z-20">
-                  <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-                    <p className="font-medium text-slate-900 dark:text-white">
-                      {user.name}
-                    </p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                      {user.email}
-                    </p>
-                  </div>
-                  <div className="p-2">
-                    <Button
-                      variant="ghost"
-                      onClick={() => signOut({ callbackUrl: "/auth/signin" })}
-                      className="w-full justify-start gap-2 text-red-600"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Logout
-                    </Button>
-                  </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className="gap-2 pl-2 pr-4 rounded-full hover:bg-secondary border border-transparent hover:border-border/50 cursor-pointer"
+              >
+                <Avatar className="w-8 h-8 border border-border/50">
+                  <AvatarImage src={user.image || ""} />
+                  <AvatarFallback className="bg-cyan-500/10 text-cyan-500">
+                    {user.name?.[0]?.toUpperCase() || "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col items-start text-sm">
+                  <span className="font-medium hidden md:inline-block text-foreground">
+                    {user.name || "User"}
+                  </span>
                 </div>
-              </>
-            )}
-          </div>
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="w-56 glass border-border/50 bg-card"
+            >
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <div className="px-2 pb-2 text-xs text-muted-foreground truncate">
+                {user.email}
+              </div>
+              <DropdownMenuSeparator className="bg-border/50" />
+              <DropdownMenuItem
+                className="cursor-pointer text-red-500 dark:text-red-400 focus:text-red-600 dark:focus:text-red-300 focus:bg-red-500/10"
+                onClick={() => signOut({ callbackUrl: "/auth/signin" })}
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Log out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, memo } from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -38,7 +38,11 @@ const priorityColors: Record<string, string> = {
   high: "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-900",
 };
 
-export function TaskCard({
+/**
+ * Memoized TaskCard component - only re-renders when props actually change
+ * This prevents unnecessary re-renders when the parent component updates
+ */
+export const TaskCard = memo(function TaskCard({
   task,
   onEdit,
   onDelete,
@@ -82,7 +86,7 @@ export function TaskCard({
   };
 
   return (
-    <Card className="relative group transition-all hover:shadow-md p-4">
+    <Card className="relative group transition-all hover:shadow-md p-4 glass border-border/50">
       <div className="space-y-3">
         {/* Header with checkbox and title */}
         <div className="flex items-start space-x-3">
@@ -176,6 +180,28 @@ export function TaskCard({
               {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
             </Badge>
           )}
+          {task.category && (
+            <Badge
+              variant="outline"
+              className={cn(
+                "text-xs",
+                task.category.color === "blue" &&
+                  "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:text-blue-300",
+                task.category.color === "red" &&
+                  "bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-300",
+                task.category.color === "green" &&
+                  "bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-300",
+                task.category.color === "yellow" &&
+                  "bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300",
+                task.category.color === "purple" &&
+                  "bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-900/30 dark:text-purple-300",
+                task.category.color === "gray" &&
+                  "bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-900/30 dark:text-gray-300"
+              )}
+            >
+              {task.category.name}
+            </Badge>
+          )}
         </div>
 
         {/* Subtask Progress */}
@@ -247,4 +273,4 @@ export function TaskCard({
       </div>
     </Card>
   );
-}
+});

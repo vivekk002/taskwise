@@ -28,11 +28,11 @@ export const authOptions: NextAuthOptions = {
           throw new Error("No account found with this email");
         }
 
-        if (!user.emailVerified) {
-          console.log("Not Verified");
+        // if (!user.emailVerified) {
+        //   console.log("Not Verified");
 
-          throw new Error("EmailNotVerified");
-        }
+        //   throw new Error("EmailNotVerified");
+        // }
 
         if (!user.password) {
           throw new Error(

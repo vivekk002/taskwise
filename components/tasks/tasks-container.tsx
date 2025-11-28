@@ -1,15 +1,26 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Plus, Search, Filter, X, ArrowUpDown } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Filter,
+  X,
+  ArrowUpDown,
+  GripVertical,
+  Tag,
+  ListTodo,
+} from "lucide-react";
 import { toast } from "sonner";
 import { TaskCard } from "./task-card";
-import { TaskCardSkeleton } from "./task-card-skeleton";
+import { TaskCardSkeleton } from "@/components/ui/loading-skeletons";
 import { TaskDialog } from "@/components/dialogs/task-dialog";
+import { CategoryDialog } from "@/components/dialogs/category-dialog";
 import { ConfirmDialog } from "@/components/dialogs/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Select,
   SelectContent,
@@ -17,6 +28,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+  DropResult,
+} from "@hello-pangea/dnd";
 import type { TaskWithRelations } from "@/types";
 
 function capitalizePriority(
@@ -39,6 +56,7 @@ function lowercasePriority(
 type PriorityFilter = "all" | "low" | "medium" | "high";
 type StatusFilter = "all" | "active" | "completed" | "overdue";
 type SortOption =
+  | "manual"
   | "newest"
   | "oldest"
   | "deadline"
@@ -48,11 +66,13 @@ type SortOption =
 
 export function TasksContainer() {
   const [tasks, setTasks] = useState<TaskWithRelations[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [editingTask, setEditingTask] =
     useState<Partial<TaskWithRelations> | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -68,6 +88,7 @@ export function TasksContainer() {
 
   useEffect(() => {
     fetchTasks();
+    fetchCategories();
   }, []);
 
   const fetchTasks = async () => {
@@ -83,9 +104,13 @@ export function TasksContainer() {
 
       const data = await res.json();
 
-      if (Array.isArray(data)) {
+      if (data.tasks && Array.isArray(data.tasks)) {
+        setTasks(data.tasks);
+      } else if (Array.isArray(data)) {
+        // Fallback for backward compatibility
         setTasks(data);
       } else {
+        console.error("Invalid tasks data structure:", data);
         toast.error("Invalid tasks data");
         setTasks([]);
       }
@@ -95,6 +120,42 @@ export function TasksContainer() {
       setTasks([]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch("/api/categories");
+      if (res.ok) {
+        const data = await res.json();
+        setCategories(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch categories:", error);
+    }
+  };
+
+  const handleCreateCategory = async (data: {
+    name: string;
+    color: string;
+  }) => {
+    try {
+      const res = await fetch("/api/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (res.ok) {
+        const newCategory = await res.json();
+        setCategories((prev) => [newCategory, ...prev]);
+        toast.success("Category created!");
+      } else {
+        toast.error("Failed to create category");
+      }
+    } catch (error) {
+      console.error("Failed to create category:", error);
+      toast.error("Failed to create category");
     }
   };
 
@@ -243,6 +304,56 @@ export function TasksContainer() {
     toast.info("Filters cleared");
   };
 
+  const onDragEnd = async (result: DropResult) => {
+    if (!result.destination) return;
+
+    const sourceIndex = result.source.index;
+    const destinationIndex = result.destination.index;
+
+    if (sourceIndex === destinationIndex) return;
+
+    const newTasks = Array.from(filteredTasks);
+    const [reorderedItem] = newTasks.splice(sourceIndex, 1);
+    newTasks.splice(destinationIndex, 0, reorderedItem);
+
+    // Optimistic update
+    // We need to update the main 'tasks' state, not just the filtered one
+    // This is tricky with filters, so we only allow drag when filters are mostly empty or we handle it carefully
+    // For now, we'll update the local state to reflect the visual change
+    // But since 'filteredTasks' is derived, we need to update 'tasks'
+
+    // Simplification: Only allow reordering when showing all tasks (no search/filter) or handle it by finding the item in main list
+    // Better approach: Update the 'order' field of the affected tasks
+
+    const updatedTasks = newTasks.map((task, index) => ({
+      ...task,
+      order: index,
+    }));
+
+    // Update local state immediately
+    // We need to merge these updated tasks back into the main 'tasks' array
+    const taskMap = new Map(tasks.map((t) => [t.id, t]));
+    updatedTasks.forEach((t) => taskMap.set(t.id, t));
+    setTasks(Array.from(taskMap.values()));
+
+    try {
+      const itemsToUpdate = updatedTasks.map((t) => ({
+        id: t.id,
+        order: t.order,
+      }));
+
+      await fetch("/api/tasks/reorder", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: itemsToUpdate }),
+      });
+    } catch (error) {
+      console.error("Failed to reorder tasks:", error);
+      toast.error("Failed to save new order");
+      fetchTasks(); // Revert on error
+    }
+  };
+
   const isFiltered =
     searchQuery ||
     priorityFilter !== "all" ||
@@ -253,6 +364,9 @@ export function TasksContainer() {
     const sorted = [...tasksToSort];
 
     switch (sortBy) {
+      case "manual":
+        return sorted.sort((a, b) => (a.order || 0) - (b.order || 0));
+
       case "newest":
         return sorted.sort(
           (a, b) =>
@@ -355,10 +469,19 @@ export function TasksContainer() {
             {filteredTasks.length} of {tasks.length} tasks
           </p>
         </div>
-        <Button onClick={() => handleOpenDialog()}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Task
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setIsCategoryDialogOpen(true)}
+          >
+            <Tag className="mr-2 h-4 w-4" />
+            New Category
+          </Button>
+          <Button onClick={() => handleOpenDialog()}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Task
+          </Button>
+        </div>
       </div>
 
       {/* Search and Sort Row */}
@@ -385,6 +508,7 @@ export function TasksContainer() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="manual">Manual Order</SelectItem>
             <SelectItem value="newest">Newest First</SelectItem>
             <SelectItem value="oldest">Oldest First</SelectItem>
             <SelectItem value="deadline">By Deadline</SelectItem>
@@ -538,6 +662,8 @@ export function TasksContainer() {
                   ? "Priority"
                   : sortBy === "title"
                   ? "Title"
+                  : sortBy === "manual"
+                  ? "Manual"
                   : "Focus Time"}
                 <X
                   className="w-3 h-3 cursor-pointer"
@@ -551,55 +677,72 @@ export function TasksContainer() {
 
       {/* Tasks Grid */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <TaskCardSkeleton key={i} />
-          ))}
-        </div>
+        <TaskCardSkeleton count={6} />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredTasks.length > 0 ? (
-            filteredTasks.map((task) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                onEdit={() => handleOpenDialog(task)}
-                onDelete={() => handleDeleteClick(task.id, task.title)}
-                onToggle={handleToggle}
-                onRefresh={fetchTasks}
-                isLoading={false}
-              />
-            ))
-          ) : (
-            <div className="col-span-full text-center py-12">
-              <div className="text-gray-500 dark:text-gray-400">
-                {isFiltered ? (
+        <DragDropContext onDragEnd={onDragEnd}>
+          <Droppable droppableId="tasks" direction="horizontal">
+            {(provided) => (
+              <div
+                {...provided.droppableProps}
+                ref={provided.innerRef}
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+              >
+                {filteredTasks.length > 0 ? (
                   <>
-                    <p className="text-lg font-medium mb-2">No tasks found</p>
-                    <p className="text-sm">
-                      Try adjusting your filters or search query
-                    </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleClearFilters}
-                      className="mt-4"
-                    >
-                      Clear Filters
-                    </Button>
+                    {filteredTasks.map((task, index) => (
+                      <Draggable
+                        key={task.id}
+                        draggableId={task.id}
+                        index={index}
+                        isDragDisabled={sortBy !== "manual"}
+                      >
+                        {(provided) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                          >
+                            <TaskCard
+                              task={task}
+                              onEdit={() => handleOpenDialog(task)}
+                              onDelete={() =>
+                                handleDeleteClick(task.id, task.title)
+                              }
+                              onToggle={handleToggle}
+                              onRefresh={fetchTasks}
+                              isLoading={false}
+                            />
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
                   </>
                 ) : (
-                  <>
-                    <p className="text-lg font-medium mb-2">No tasks yet</p>
-                    <p className="text-sm">
-                      Create your first task to get started!
-                    </p>
-                  </>
+                  <div className="col-span-full">
+                    {isFiltered ? (
+                      <EmptyState
+                        icon={Search}
+                        title="No tasks found"
+                        description="Try adjusting your filters or search query to find what you're looking for."
+                        actionLabel="Clear Filters"
+                        onAction={handleClearFilters}
+                      />
+                    ) : (
+                      <EmptyState
+                        icon={ListTodo}
+                        title="No tasks yet"
+                        description="Create your first task to get started on your productivity journey!"
+                        actionLabel="Create Task"
+                        onAction={() => handleOpenDialog()}
+                      />
+                    )}
+                  </div>
                 )}
+                {provided.placeholder}
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </Droppable>
+        </DragDropContext>
       )}
 
       {/* Task Dialog */}
@@ -609,12 +752,14 @@ export function TasksContainer() {
           task={
             editingTask
               ? {
-                  ...editingTask,
+                  id: editingTask.id,
+                  title: editingTask.title,
                   description: editingTask.description ?? undefined,
                   deadline: editingTask.deadline
                     ? new Date(editingTask.deadline)
                     : undefined,
                   priority: capitalizePriority(editingTask.priority),
+                  categoryId: editingTask.categoryId ?? undefined,
                 }
               : undefined
           }
@@ -622,6 +767,13 @@ export function TasksContainer() {
           onSave={handleCreateOrUpdate}
         />
       )}
+
+      {/* Category Dialog */}
+      <CategoryDialog
+        open={isCategoryDialogOpen}
+        onClose={() => setIsCategoryDialogOpen(false)}
+        onSave={handleCreateCategory}
+      />
 
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog

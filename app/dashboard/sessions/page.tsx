@@ -64,19 +64,29 @@ export default function SessionsPage() {
       const res = await fetch("/api/sessions");
       if (res.ok) {
         const data = await res.json();
-        setSessions(data);
+        // API returns { sessions: [...], pagination: {...} }
+        const sessionsArray = Array.isArray(data.sessions)
+          ? data.sessions
+          : Array.isArray(data)
+          ? data
+          : [];
+        setSessions(sessionsArray);
 
         // Extract unique tasks
         const uniqueTasks = Array.from(
-          new Map(data.map((s: Session) => [s.task.id, s.task])).values()
+          new Map(
+            sessionsArray.map((s: Session) => [s.task.id, s.task])
+          ).values()
         );
         setTasks(uniqueTasks as Array<{ id: string; title: string }>);
       } else {
         toast.error("Failed to load sessions");
+        setSessions([]); // Set empty array on error
       }
     } catch (error) {
       console.error("Failed to fetch sessions:", error);
       toast.error("Failed to load sessions");
+      setSessions([]); // Set empty array on error
     } finally {
       setIsLoading(false);
     }
@@ -120,10 +130,10 @@ export default function SessionsPage() {
 
   const filteredSessions = filterSessionsByTask(filterSessionsByDate(sessions));
 
-  const groupSessions = (sessions: Session[]) => {
+  const groupSessions = (sessionsToGroup: Session[]) => {
     if (groupBy === "date") {
       const grouped: Record<string, Session[]> = {};
-      sessions.forEach((session) => {
+      sessionsToGroup.forEach((session) => {
         const dateKey = format(new Date(session.startedAt), "yyyy-MM-dd");
         if (!grouped[dateKey]) {
           grouped[dateKey] = [];
@@ -133,7 +143,7 @@ export default function SessionsPage() {
       return grouped;
     } else {
       const grouped: Record<string, Session[]> = {};
-      sessions.forEach((session) => {
+      sessionsToGroup.forEach((session) => {
         const taskKey = session.task.id;
         if (!grouped[taskKey]) {
           grouped[taskKey] = [];
@@ -218,10 +228,8 @@ export default function SessionsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-            Focus Sessions
-          </h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">
+          <h1 className="text-3xl font-bold text-foreground">Focus Sessions</h1>
+          <p className="text-muted-foreground mt-1">
             Track and analyze your focus time
           </p>
         </div>
@@ -233,50 +241,50 @@ export default function SessionsPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="p-6 bg-blue-50 dark:bg-blue-950/30 border-none">
+        <Card className="p-6 glass border-border/50">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">
+              <p className="text-sm font-medium text-muted-foreground mb-1">
                 Total Focus Time
               </p>
-              <h3 className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+              <h3 className="text-2xl font-bold text-blue-500">
                 {formatTime(totalDuration)}
               </h3>
             </div>
-            <div className="bg-blue-500 p-3 rounded-lg">
-              <Clock className="w-5 h-5 text-white" />
+            <div className="bg-blue-500/10 p-3 rounded-lg">
+              <Clock className="w-5 h-5 text-blue-500" />
             </div>
           </div>
         </Card>
 
-        <Card className="p-6 bg-green-50 dark:bg-green-950/30 border-none">
+        <Card className="p-6 glass border-border/50">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">
+              <p className="text-sm font-medium text-muted-foreground mb-1">
                 Total Sessions
               </p>
-              <h3 className="text-2xl font-bold text-green-600 dark:text-green-400">
+              <h3 className="text-2xl font-bold text-green-500">
                 {totalSessions}
               </h3>
             </div>
-            <div className="bg-green-500 p-3 rounded-lg">
-              <Timer className="w-5 h-5 text-white" />
+            <div className="bg-green-500/10 p-3 rounded-lg">
+              <Timer className="w-5 h-5 text-green-500" />
             </div>
           </div>
         </Card>
 
-        <Card className="p-6 bg-purple-50 dark:bg-purple-950/30 border-none">
+        <Card className="p-6 glass border-border/50">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">
+              <p className="text-sm font-medium text-muted-foreground mb-1">
                 Average Duration
               </p>
-              <h3 className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+              <h3 className="text-2xl font-bold text-purple-500">
                 {formatDuration(avgDuration)}
               </h3>
             </div>
-            <div className="bg-purple-500 p-3 rounded-lg">
-              <TrendingUp className="w-5 h-5 text-white" />
+            <div className="bg-purple-500/10 p-3 rounded-lg">
+              <TrendingUp className="w-5 h-5 text-purple-500" />
             </div>
           </div>
         </Card>
@@ -285,10 +293,8 @@ export default function SessionsPage() {
       {/* Filters */}
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-            Filters
-          </span>
+          <Filter className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-foreground">Filters</span>
           {isFiltered && (
             <Button
               variant="ghost"
@@ -305,7 +311,7 @@ export default function SessionsPage() {
         <div className="flex flex-wrap gap-3">
           {/* Date Filter */}
           <div className="flex-1 min-w-[150px]">
-            <label className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 block">
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">
               Time Period
             </label>
             <Select
@@ -326,7 +332,7 @@ export default function SessionsPage() {
 
           {/* Task Filter */}
           <div className="flex-1 min-w-[150px]">
-            <label className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 block">
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">
               Task
             </label>
             <Select value={selectedTask} onValueChange={setSelectedTask}>
@@ -346,7 +352,7 @@ export default function SessionsPage() {
 
           {/* Group By */}
           <div className="flex-1 min-w-[150px]">
-            <label className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 block">
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">
               Group By
             </label>
             <Select
@@ -368,15 +374,15 @@ export default function SessionsPage() {
       {/* Sessions List */}
       {isLoading ? (
         <div className="text-center py-12">
-          <p className="text-slate-500">Loading sessions...</p>
+          <p className="text-muted-foreground">Loading sessions...</p>
         </div>
       ) : filteredSessions.length === 0 ? (
         <Card className="p-12 text-center">
           <Clock className="w-12 h-12 mx-auto text-slate-400 mb-4" />
-          <p className="text-lg font-medium text-slate-900 dark:text-white mb-2">
+          <p className="text-lg font-medium text-foreground mb-2">
             No sessions found
           </p>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-sm text-muted-foreground">
             {isFiltered
               ? "Try adjusting your filters"
               : "Start a focus session to see it here"}
@@ -400,7 +406,7 @@ export default function SessionsPage() {
             return (
               <div key={key} className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                  <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
                     {groupBy === "date" ? (
                       <Calendar className="w-5 h-5" />
                     ) : (
@@ -417,13 +423,13 @@ export default function SessionsPage() {
                   {groupSessions.map((session) => (
                     <Card
                       key={session.id}
-                      className="p-4 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors"
+                      className="p-4 glass border-border/50 hover:bg-secondary/50 transition-colors"
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             {groupBy === "date" && (
-                              <p className="font-medium text-slate-900 dark:text-white">
+                              <p className="font-medium text-foreground">
                                 {session.task.title}
                               </p>
                             )}
@@ -440,18 +446,18 @@ export default function SessionsPage() {
                               </Badge>
                             )}
                           </div>
-                          <p className="text-sm text-slate-500 dark:text-slate-400">
+                          <p className="text-sm text-muted-foreground">
                             {format(new Date(session.startedAt), "h:mm a")} -{" "}
                             {format(new Date(session.endedAt), "h:mm a")}
                           </p>
                           {session.notes && (
-                            <p className="text-sm text-slate-600 dark:text-slate-300 mt-2 italic">
+                            <p className="text-sm text-muted-foreground mt-2 italic">
                               "{session.notes}"
                             </p>
                           )}
                         </div>
                         <div className="text-right">
-                          <p className="text-lg font-bold font-mono text-green-600 dark:text-green-400">
+                          <p className="text-lg font-bold font-mono text-green-500">
                             {formatTime(session.duration)}
                           </p>
                         </div>

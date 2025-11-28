@@ -2,9 +2,39 @@
 
 import React, { useEffect, useState } from "react";
 import { AnalyticsStats } from "@/components/analytics/analytics-stats";
-import { FocusTimeChart } from "@/components/analytics/focus-time-chart";
-import { HourlyActivityChart } from "@/components/analytics/hourly-activity-chart";
-import { TopTasksList } from "@/components/analytics/top-tasks-list";
+import dynamic from "next/dynamic";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Lazy load chart components (they use recharts which is heavy)
+const FocusTimeChart = dynamic(
+  () =>
+    import("@/components/analytics/focus-time-chart").then((mod) => ({
+      default: mod.FocusTimeChart,
+    })),
+  {
+    loading: () => <Skeleton className="h-[400px] w-full rounded-lg" />,
+  }
+);
+
+const HourlyActivityChart = dynamic(
+  () =>
+    import("@/components/analytics/hourly-activity-chart").then((mod) => ({
+      default: mod.HourlyActivityChart,
+    })),
+  {
+    loading: () => <Skeleton className="h-[300px] w-full rounded-lg" />,
+  }
+);
+
+const TopTasksList = dynamic(
+  () =>
+    import("@/components/analytics/top-tasks-list").then((mod) => ({
+      default: mod.TopTasksList,
+    })),
+  {
+    loading: () => <Skeleton className="h-[300px] w-full rounded-lg" />,
+  }
+);
 
 interface AnalyticsData {
   stats: {
@@ -70,7 +100,7 @@ export default function AnalyticsPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-slate-500">Loading analytics...</p>
+        <p className="text-muted-foreground">Loading analytics...</p>
       </div>
     );
   }
@@ -78,7 +108,7 @@ export default function AnalyticsPage() {
   if (!data) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-slate-500">Failed to load analytics data</p>
+        <p className="text-muted-foreground">Failed to load analytics data</p>
       </div>
     );
   }
@@ -87,10 +117,10 @@ export default function AnalyticsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+        <h1 className="text-3xl font-bold text-foreground">
           Analytics & Insights 📊
         </h1>
-        <p className="text-slate-600 dark:text-slate-400 mt-1">
+        <p className="text-muted-foreground mt-1">
           Track your productivity and focus patterns
         </p>
       </div>

@@ -18,14 +18,26 @@ export default async function DashboardLayout({
 
   return (
     <TimerProvider>
-      <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900">
-        {/* Fixed Sidebar */}
-        <Sidebar />
+      <div className="flex min-h-screen bg-background relative overflow-hidden">
+        {/* Background Gradients */}
+        <div className="fixed inset-0 z-0 pointer-events-none">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-violet-500/5 blur-[120px]" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-500/5 blur-[120px]" />
+        </div>
 
-        {/* Main Content Area with margin-left for sidebar */}
-        <div className="flex-1 flex flex-col ml-64">
+        {/* Fixed Sidebar */}
+        <div className="hidden md:block fixed left-0 top-0 z-50 h-full">
+          <Sidebar />
+        </div>
+
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col ml-0 md:ml-64 transition-all duration-300 relative z-10">
           <Header user={session.user} />
-          <main className="p-6 flex-grow overflow-auto">{children}</main>
+          <main className="flex-grow overflow-y-auto overflow-x-hidden p-4 md:p-8 max-w-7xl mx-auto w-full">
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              {children}
+            </div>
+          </main>
         </div>
       </div>
     </TimerProvider>

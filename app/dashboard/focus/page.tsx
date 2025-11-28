@@ -12,12 +12,16 @@ import {
   Circle,
   XCircle,
   ArrowLeft,
+  Volume2,
+  VolumeX,
+  Music,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
 import {
   Select,
   SelectContent,
@@ -37,6 +41,25 @@ interface Task {
   completed: boolean;
   deadline: string | null;
 }
+
+const SOUNDSCAPES = [
+  { id: "none", name: "None", url: "" },
+  {
+    id: "rain",
+    name: "Rain",
+    url: "https://assets.mixkit.co/sfx/preview/mixkit-light-rain-loop-2393.mp3",
+  },
+  {
+    id: "forest",
+    name: "Forest",
+    url: "https://assets.mixkit.co/sfx/preview/mixkit-forest-birds-ambience-1210.mp3",
+  },
+  {
+    id: "white-noise",
+    name: "White Noise",
+    url: "https://assets.mixkit.co/sfx/preview/mixkit-white-noise-1234.mp3",
+  },
+];
 
 export default function FocusPage() {
   const router = useRouter();
@@ -60,6 +83,11 @@ export default function FocusPage() {
   const [isSaving, setIsSaving] = useState(false);
   const hasAutoStarted = useRef(false);
 
+  // Soundscape state
+  const [selectedSound, setSelectedSound] = useState<string>("none");
+  const [volume, setVolume] = useState<number>(50);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
   const timerRunning = isTimerRunning();
   const currentElapsed = activeTimer?.elapsedSeconds || 0;
   const currentNotes = activeTimer?.notes || "";
@@ -68,6 +96,45 @@ export default function FocusPage() {
   useEffect(() => {
     fetchActiveTasks();
   }, []);
+
+  // Handle audio playback
+  useEffect(() => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
+      audioRef.current.loop = true;
+    }
+
+    const audio = audioRef.current;
+    audio.volume = volume / 100;
+
+    const sound = SOUNDSCAPES.find((s) => s.id === selectedSound);
+
+    if (sound && sound.url) {
+      if (audio.src !== sound.url) {
+        audio.src = sound.url;
+      }
+
+      if (timerRunning) {
+        audio.play().catch((e) => console.error("Audio play failed:", e));
+      } else {
+        audio.pause();
+      }
+    } else {
+      audio.pause();
+      audio.src = "";
+    }
+
+    return () => {
+      audio.pause();
+    };
+  }, [selectedSound, timerRunning]);
+
+  // Update volume
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume / 100;
+    }
+  }, [volume]);
 
   // Handle task selection from URL and auto-start
   useEffect(() => {
@@ -101,7 +168,15 @@ export default function FocusPage() {
       const res = await fetch("/api/tasks");
       if (res.ok) {
         const data = await res.json();
-        const activeTasks = data.filter((t: Task) => !t.completed);
+
+        let tasksData = [];
+        if (data.tasks && Array.isArray(data.tasks)) {
+          tasksData = data.tasks;
+        } else if (Array.isArray(data)) {
+          tasksData = data;
+        }
+
+        const activeTasks = tasksData.filter((t: Task) => !t.completed);
         setTasks(activeTasks);
       }
     } catch (error) {
@@ -206,22 +281,22 @@ export default function FocusPage() {
           </Button>
         </Link>
         <div className="flex-1">
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
             <Timer className="w-8 h-8" />
             Focus Timer
           </h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">
+          <p className="text-muted-foreground mt-1">
             Select a task and start focusing
           </p>
         </div>
       </div>
 
       {/* Timer Display */}
-      <Card className="p-8 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-2">
+      <Card className="p-8 bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-950/30 dark:to-violet-950/30 border-2 glass relative z-10">
         <div className="text-center space-y-6">
           {/* Status */}
           <div className="flex items-center justify-center gap-2">
-            <h3 className="text-xl font-semibold text-slate-700 dark:text-slate-300">
+            <h3 className="text-xl font-semibold text-foreground">
               {activeTimer ? activeTimer.taskTitle : "Ready to Focus"}
             </h3>
             {isPaused && (
@@ -237,13 +312,54 @@ export default function FocusPage() {
           </div>
 
           {/* Timer */}
-          <div className="text-8xl font-bold font-mono text-slate-900 dark:text-slate-50">
+          <div className="text-8xl font-bold font-mono text-foreground">
             {formatTime(currentElapsed)}
+          </div>
+
+          {/* Soundscapes Control */}
+          <div className="max-w-md mx-auto bg-secondary/50 p-4 rounded-lg backdrop-blur-sm border border-border/50">
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <Label className="text-xs font-medium mb-1.5 block text-left flex items-center gap-1">
+                  <Music className="w-3 h-3" />
+                  Soundscape
+                </Label>
+                <Select value={selectedSound} onValueChange={setSelectedSound}>
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Select sound" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SOUNDSCAPES.map((sound) => (
+                      <SelectItem key={sound.id} value={sound.id}>
+                        {sound.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="w-32 space-y-1.5 ">
+                <Label className="text-xs font-medium block text-left flex items-center gap-1">
+                  {volume === 0 ? (
+                    <VolumeX className="w-3 h-3  " />
+                  ) : (
+                    <Volume2 className="w-3 h-3" />
+                  )}
+                  Volume
+                </Label>
+                <Slider
+                  value={[volume]}
+                  onValueChange={(vals) => setVolume(vals[0])}
+                  max={100}
+                  step={1}
+                  className="py-1 "
+                />
+              </div>
+            </div>
           </div>
 
           {/* Task Selection (only show when no active timer) */}
           {!activeTimer && (
-            <div className="max-w-md mx-auto">
+            <div className="max-w-md mx-auto relative z-0">
               <Label
                 htmlFor="task-select"
                 className="text-sm font-medium mb-2 block"
@@ -376,7 +492,7 @@ export default function FocusPage() {
       {/* Active Tasks List */}
       {!activeTimer && tasks.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+          <h3 className="text-lg font-semibold text-foreground">
             Active Tasks
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -384,8 +500,8 @@ export default function FocusPage() {
               <Card
                 key={task.id}
                 className={cn(
-                  "p-4 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer",
-                  selectedTaskId === task.id && "ring-2 ring-blue-500"
+                  "p-4 hover:bg-secondary/50 transition-colors cursor-pointer glass border-border/50",
+                  selectedTaskId === task.id && "ring-2 ring-primary"
                 )}
                 onClick={() => setSelectedTaskId(task.id)}
               >
@@ -398,7 +514,7 @@ export default function FocusPage() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-slate-900 dark:text-white truncate">
+                    <p className="font-medium text-foreground truncate">
                       {task.title}
                     </p>
                     <div className="flex items-center gap-2 mt-1">
@@ -413,7 +529,7 @@ export default function FocusPage() {
                         </Badge>
                       )}
                       {task.deadline && (
-                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                        <span className="text-xs text-muted-foreground">
                           <Clock className="w-3 h-3 inline mr-1" />
                           {new Date(task.deadline).toLocaleDateString()}
                         </span>

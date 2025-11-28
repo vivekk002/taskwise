@@ -20,7 +20,6 @@ import {
 } from "recharts";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { useAnalyticsOverview } from "@/hooks/use-analytics-overview";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AnalyticsStatsCard } from "./analytics-stats-card";
 
@@ -35,9 +34,23 @@ interface DailyData {
 }
 
 export function AnalyticsContainer() {
-  const { data: overviewData, isLoading } = useAnalyticsOverview(30000);
   const [view, setView] = useState<ViewType>("daily");
   const [chartType, setChartType] = useState<ChartType>("line");
+
+  // Mock data for now - will be replaced with real API call
+  const overviewData = {
+    today: { hours: 3, minutes: 45 },
+    week: { hours: 18, minutes: 30 },
+    month: { hours: 72, minutes: 15 },
+    totalSessions: 45,
+    avgSessionMinutes: 35,
+    mostFocusedTask: { title: "Project Planning" },
+    topTasks: [
+      { title: "Project Planning", hours: 5, minutes: 30 },
+      { title: "Code Review", hours: 4, minutes: 15 },
+      { title: "Documentation", hours: 3, minutes: 45 },
+    ],
+  };
 
   const chartData: DailyData[] = useMemo(() => {
     const days: DailyData[] = [];
@@ -93,17 +106,6 @@ export function AnalyticsContainer() {
       })) || []
     );
   }, [overviewData]);
-
-  if (isLoading) {
-    return (
-      <div className="space-y-8">
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-96 w-full" />
-      </div>
-    );
-  }
-
-  if (!overviewData) return null;
 
   return (
     <div className="space-y-8">

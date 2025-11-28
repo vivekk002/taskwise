@@ -1,9 +1,9 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
@@ -42,5 +42,13 @@ export default function VerifyEmailPage() {
     <div className="max-w-md mx-auto mt-20 p-6 border rounded shadow text-center">
       <p className={error ? "text-red-600" : "text-green-600"}>{message}</p>
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={<div className="text-center mt-20">Loading...</div>}>
+      <VerifyEmailContent />
+    </Suspense>
   );
 }

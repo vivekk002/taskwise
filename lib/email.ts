@@ -47,5 +47,15 @@ The Taskwise Team`,
     `,
   };
 
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER) {
+    console.log("----------------------------------------");
+    console.log("📧 Email Service (Development Mode)");
+    console.log(`To: ${to}`);
+    console.log(`Subject: ${mailOptions.subject}`);
+    console.log(`Verify URL: ${verifyUrl}`);
+    console.log("----------------------------------------");
+    return;
+  }
+
   await transporter.sendMail(mailOptions);
 }

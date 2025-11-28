@@ -7,29 +7,69 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user?.id) {
+    if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Get user from database
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Get pagination parameters
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "50");
+    const skip = (page - 1) * limit;
+
+    // Get total count
+    const totalCount = await prisma.focusSession.count({
+      where: {
+        userId: user.id,
+      },
+    });
+
     const sessions = await prisma.focusSession.findMany({
       where: {
-        userId: session.user.id,
+        userId: user.id,
       },
-      include: {
+      select: {
+        id: true,
+        duration: true,
+        startedAt: true,
+        endedAt: true,
+        notes: true,
+        completed: true,
         task: {
           select: {
             id: true,
             title: true,
+            priority: true,
           },
         },
       },
       orderBy: {
         startedAt: "desc",
       },
-      take: 50,
+      skip,
+      take: limit,
     });
 
-    return NextResponse.json(sessions);
+    return NextResponse.json({
+      sessions,
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+        hasMore: skip + sessions.length < totalCount,
+      },
+    });
   } catch (error) {
     console.error("Error fetching sessions:", error);
     return NextResponse.json(

@@ -1,104 +1,90 @@
-"use client";
-
-import React, { useEffect, useState } from "react";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getDashboardStats } from "@/lib/dashboard-data";
+import { getGreeting } from "@/lib/utils";
 import { StatsCards } from "@/components/dashboard/stats-cards";
 import { ActiveTimerWidget } from "@/components/dashboard/active-timer-widget";
 import { TodaysTasks } from "@/components/dashboard/todays-tasks";
 import { UpcomingDeadlines } from "@/components/dashboard/upcoming-deadlines";
-import { RecentSessions } from "@/components/dashboard/recent-sessions";
-import { useSession } from "next-auth/react";
+import { redirect } from "next/navigation";
+import dynamic from "next/dynamic";
+import { Skeleton } from "@/components/ui/skeleton";
 
-interface DashboardData {
-  stats: {
-    totalTasks: number;
-    completedTasks: number;
-    activeTasks: number;
-    overdueTasks: number;
-    todayTasks: number;
-    todayCompleted: number;
-    todayFocusTime: number;
-    weekFocusTime: number;
-    totalSessions: number;
-    completionRate: number;
-  };
-  todaysTasks: any[];
-  upcomingTasks: any[];
-  recentSessions: any[];
-}
+// Lazy load heavy components
+const DailyOverviewChart = dynamic(
+  () =>
+    import("@/components/dashboard/daily-overview-chart").then((mod) => ({
+      default: mod.DailyOverviewChart,
+    })),
+  {
+    loading: () => <Skeleton className="h-[300px] w-full rounded-lg" />,
+  }
+);
 
-export default function DashboardPage() {
-  const { data: session } = useSession();
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+const RecentSessions = dynamic(
+  () =>
+    import("@/components/dashboard/recent-sessions").then((mod) => ({
+      default: mod.RecentSessions,
+    })),
+  {
+    loading: () => <Skeleton className="h-[400px] w-full rounded-lg" />,
+  }
+);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
+export default async function DashboardPage() {
+  const session = await getServerSession(authOptions);
 
-  const fetchDashboardData = async () => {
-    try {
-      setIsLoading(true);
-      const res = await fetch("/api/dashboard");
-      if (res.ok) {
-        const dashboardData = await res.json();
-        setData(dashboardData);
-      }
-    } catch (error) {
-      console.error("Failed to fetch dashboard data:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-slate-500">Loading dashboard...</p>
-      </div>
-    );
+  if (!session?.user) {
+    redirect("/auth/signin");
   }
 
-  if (!data) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-slate-500">Failed to load dashboard data</p>
-      </div>
-    );
-  }
-
-  const greeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 18) return "Good afternoon";
-    return "Good evening";
-  };
+  const stats = await getDashboardStats();
+  const greeting = getGreeting();
 
   return (
-    <div className="space-y-6">
-      {/* Welcome Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-          {greeting()}, {session?.user?.name || "there"}! 👋
-        </h1>
-        <p className="text-slate-600 dark:text-slate-400 mt-1">
-          Here's what's happening with your tasks today
-        </p>
+    <div className="space-y-8 p-2">
+      {/* Welcome Section */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+            {greeting}, {session?.user?.name || "User"}! 👋
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Here's what's happening with your projects today
+          </p>
+        </div>
+        <div className="flex items-center gap-4">
+          <p className="text-sm font-medium text-muted-foreground bg-secondary/50 px-4 py-2 rounded-full border border-border/50">
+            {new Date().toLocaleDateString("en-US", {
+              weekday: "long",
+              month: "long",
+              day: "numeric",
+            })}
+          </p>
+        </div>
       </div>
 
-      {/* Active Timer Widget */}
-      <ActiveTimerWidget />
+      {/* Stats Grid */}
+      <StatsCards stats={stats.stats} />
 
-      {/* Stats Cards */}
-      <StatsCards stats={data.stats} />
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Chart Section - Spans 2 columns */}
+        <div className="lg:col-span-2 space-y-8">
+          <DailyOverviewChart data={stats.dailyOverview} />
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <TodaysTasks tasks={data.todaysTasks} />
-        <UpcomingDeadlines tasks={data.upcomingTasks} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <TodaysTasks tasks={stats.todaysTasks} />
+            <UpcomingDeadlines tasks={stats.upcomingDeadlines} />
+          </div>
+        </div>
+
+        {/* Right Sidebar - Spans 1 column */}
+        <div className="space-y-8">
+          <ActiveTimerWidget />
+          <RecentSessions sessions={stats.recentSessions} />
+        </div>
       </div>
-
-      {/* Recent Sessions */}
-      <RecentSessions sessions={data.recentSessions} />
     </div>
   );
 }

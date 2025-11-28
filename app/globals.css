@@ -1,40 +1,118 @@
 @import "tailwindcss";
 
-@theme {
-  --color-background: light-dark(#ffffff, #0a0a0a);
-  --color-foreground: light-dark(#09090b, #fafafa);
+@layer base {
+  :root {
+    /* Light Mode (Auth Pages) */
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
 
-  --color-card: light-dark(#ffffff, #18181b);
-  --color-card-foreground: light-dark(#09090b, #fafafa);
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
 
-  --color-popover: light-dark(#ffffff, #18181b);
-  --color-popover-foreground: light-dark(#09090b, #fafafa);
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
 
-  --color-primary: light-dark(#3b82f6, #60a5fa);
-  --color-primary-foreground: light-dark(#ffffff, #18181b);
+    --primary: 255 85% 60%; /* Indigo */
+    --primary-foreground: 210 40% 98%;
 
-  --color-secondary: light-dark(#f1f5f9, #27272a);
-  --color-secondary-foreground: light-dark(#18181b, #fafafa);
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
 
-  --color-muted: light-dark(#f1f5f9, #27272a);
-  --color-muted-foreground: light-dark(#64748b, #a1a1aa);
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
 
-  --color-accent: light-dark(#f1f5f9, #27272a);
-  --color-accent-foreground: light-dark(#18181b, #fafafa);
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
 
-  --color-destructive: light-dark(#ef4444, #dc2626);
-  --color-destructive-foreground: light-dark(#ffffff, #fafafa);
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
 
-  --color-border: light-dark(#e2e8f0, #27272a);
-  --color-input: light-dark(#e2e8f0, #27272a);
-  --color-ring: light-dark(#3b82f6, #3b82f6);
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 255 85% 60%;
 
-  --radius: 0.5rem;
+    --radius: 1rem;
+  }
+
+  .dark {
+    /* Dark Mode (Dashboard - Deep Blue/Neon) */
+    --background: 220 40% 10%; /* Deep Blue #0f172a */
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 11%; /* Slightly lighter blue */
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 190 100% 50%; /* Neon Cyan */
+    --primary-foreground: 222 47% 11%;
+
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 33% 20%;
+    --input: 217 33% 20%;
+    --ring: 190 100% 50%;
+  }
 }
 
-body {
-  background-color: var(--color-background);
-  color: var(--color-foreground);
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+}
+
+/* Glassmorphism Utilities */
+.glass {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+}
+
+.dark .glass {
+  background: rgba(15, 23, 42, 0.6); /* Deep Blue transparent */
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+  border-radius: 1rem;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+}
+
+.glass-card:hover {
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+}
+
+.dark .glass-card:hover {
+  border-color: rgba(6, 182, 212, 0.3); /* Cyan glow */
+  box-shadow: 0 0 15px rgba(6, 182, 212, 0.1);
 }
 
 /* Toast stacking styles */
@@ -129,4 +207,75 @@ body {
 /* Loading indicator */
 [data-sonner-toast][data-loading="true"] {
   opacity: 0.8;
+}
+
+/* Custom Animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-slow {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes pulse-subtle {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.02);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.8s ease-out;
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 4s ease-in-out infinite;
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 3s ease-in-out infinite;
+}
+
+.animation-delay-100 {
+  animation-delay: 0.1s;
+}
+
+.animation-delay-200 {
+  animation-delay: 0.2s;
+}
+
+.animation-delay-300 {
+  animation-delay: 0.3s;
 }
