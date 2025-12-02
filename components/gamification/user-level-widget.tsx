@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
+import useSWR from "swr";
 import { Flame, Trophy } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
@@ -19,17 +20,14 @@ interface UserGamificationData {
 }
 
 export function UserLevelWidget() {
-  const [data, setData] = useState<UserGamificationData | null>(null);
+  const fetcher = (url: string) => fetch(url).then((res) => res.json());
+  const { data, error } = useSWR<UserGamificationData>(
+    "/api/user/gamification",
+    fetcher
+  );
 
-  useEffect(() => {
-    fetch("/api/user/gamification")
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch");
-        return res.json();
-      })
-      .then(setData)
-      .catch(console.error);
-  }, []);
+  if (error) return null;
+  // Or a skeleton loader
 
   if (!data) return null;
 

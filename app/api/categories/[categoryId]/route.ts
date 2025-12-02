@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { categoryId: string } }
+  { params }: { params: Promise<{ categoryId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -13,7 +13,7 @@ export async function DELETE(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { categoryId } = params;
+    const { categoryId } = await params;
 
     // Verify ownership
     const category = await prisma.category.findUnique({
@@ -24,9 +24,6 @@ export async function DELETE(
       return new NextResponse("Category not found", { status: 404 });
     }
 
-    // We need to verify the user owns this category via the user relation
-    // Since we don't have the user ID readily available from the session email without a lookup,
-    // let's look up the user first.
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
     });
@@ -48,7 +45,7 @@ export async function DELETE(
 
 export async function PUT(
   req: Request,
-  { params }: { params: { categoryId: string } }
+  { params }: { params: Promise<{ categoryId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -56,7 +53,7 @@ export async function PUT(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { categoryId } = params;
+    const { categoryId } = await params;
     const { name, color } = await req.json();
 
     const user = await prisma.user.findUnique({
