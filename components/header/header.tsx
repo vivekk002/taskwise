@@ -104,7 +104,7 @@ export function Header({ user }: HeaderProps) {
             aria-label="Toggle theme"
           >
             {mounted && theme === "dark" ? (
-              <Sun className="w-5 h-5 text-yellow-500 transition-all" />
+              <Sun className="w-5 h-5 text-amber-500 dark:text-amber-400 transition-all" />
             ) : (
               <Moon className="w-5 h-5 text-muted-foreground transition-all" />
             )}
@@ -119,7 +119,7 @@ export function Header({ user }: HeaderProps) {
               >
                 <Avatar className="w-8 h-8 border border-border/50">
                   <AvatarImage src={user.image || ""} />
-                  <AvatarFallback className="bg-cyan-500/10 text-cyan-500">
+                  <AvatarFallback className="bg-primary/10 text-primary">
                     {user.name?.[0]?.toUpperCase() || "U"}
                   </AvatarFallback>
                 </Avatar>
@@ -141,7 +141,7 @@ export function Header({ user }: HeaderProps) {
               </div>
               <DropdownMenuSeparator className="bg-border/50" />
               <DropdownMenuItem
-                className="cursor-pointer text-red-500 dark:text-red-400 focus:text-red-600 dark:focus:text-red-300 focus:bg-red-500/10"
+                className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
                 onClick={() => signOut({ callbackUrl: "/auth/signin" })}
               >
                 <LogOut className="w-4 h-4 mr-2" />

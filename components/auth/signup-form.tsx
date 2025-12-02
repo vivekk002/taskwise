@@ -76,10 +76,10 @@ export function SignupForm() {
   return (
     <div className="w-full max-w-md">
       <div className="text-center mb-6">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary to-pink-500 rounded-3xl mb-4 shadow-2xl shadow-primary/20 animate-pulse-subtle">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary to-purple-600 rounded-3xl mb-4 shadow-2xl shadow-primary/20 animate-pulse-subtle">
           <CheckCircle2 className="w-8 h-8 text-white" />
         </div>
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-pink-500 bg-clip-text text-transparent mb-1">
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent mb-1">
           Create Account
         </h1>
         <p className="text-muted-foreground text-sm">
@@ -222,7 +222,7 @@ export function SignupForm() {
 
           <Button
             type="submit"
-            className="w-full h-10 bg-gradient-to-r from-primary to-pink-500 hover:from-primary/90 hover:to-pink-600 text-white font-semibold shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:-translate-y-0.5 mt-4"
+            className="w-full h-10 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700 text-white font-semibold shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:-translate-y-0.5 mt-4"
             disabled={isLoading}
           >
             {isLoading ? (

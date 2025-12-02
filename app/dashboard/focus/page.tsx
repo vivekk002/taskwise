@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Play,
@@ -12,16 +12,18 @@ import {
   Circle,
   XCircle,
   ArrowLeft,
-  Volume2,
-  VolumeX,
-  Music,
+  ClipboardList,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Slider } from "@/components/ui/slider";
+import { motion, AnimatePresence } from "framer-motion";
+import confetti from "canvas-confetti";
+
 import {
   Select,
   SelectContent,
@@ -29,6 +31,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { useTimer } from "@/contexts/timer-context";
 import { cn } from "@/lib/utils";
@@ -42,26 +50,11 @@ interface Task {
   deadline: string | null;
 }
 
-const SOUNDSCAPES = [
-  { id: "none", name: "None", url: "" },
-  {
-    id: "rain",
-    name: "Rain",
-    url: "https://assets.mixkit.co/sfx/preview/mixkit-light-rain-loop-2393.mp3",
-  },
-  {
-    id: "forest",
-    name: "Forest",
-    url: "https://assets.mixkit.co/sfx/preview/mixkit-forest-birds-ambience-1210.mp3",
-  },
-  {
-    id: "white-noise",
-    name: "White Noise",
-    url: "https://assets.mixkit.co/sfx/preview/mixkit-white-noise-1234.mp3",
-  },
-];
+import useSWR, { mutate } from "swr";
 
-export default function FocusPage() {
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
+function FocusContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const taskIdFromUrl = searchParams.get("taskId");
@@ -77,69 +70,30 @@ export default function FocusPage() {
     isTimerRunning,
   } = useTimer();
 
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [selectedTaskId, setSelectedTaskId] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const hasAutoStarted = useRef(false);
+  const {
+    data,
+    error,
+    isLoading: swrLoading,
+  } = useSWR<{ tasks: Task[] }>("/api/tasks", fetcher);
 
-  // Soundscape state
-  const [selectedSound, setSelectedSound] = useState<string>("none");
-  const [volume, setVolume] = useState<number>(50);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const allTasks = data?.tasks || (Array.isArray(data) ? data : []) || [];
+  const tasks = allTasks.filter((t: Task) => !t.completed);
+
+  const [selectedTaskId, setSelectedTaskId] = useState<string>("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [isZenMode, setIsZenMode] = useState(false);
+  const hasAutoStarted = useRef(false);
 
   const timerRunning = isTimerRunning();
   const currentElapsed = activeTimer?.elapsedSeconds || 0;
   const currentNotes = activeTimer?.notes || "";
   const isPaused = activeTimer && !timerRunning;
-
-  useEffect(() => {
-    fetchActiveTasks();
-  }, []);
-
-  // Handle audio playback
-  useEffect(() => {
-    if (!audioRef.current) {
-      audioRef.current = new Audio();
-      audioRef.current.loop = true;
-    }
-
-    const audio = audioRef.current;
-    audio.volume = volume / 100;
-
-    const sound = SOUNDSCAPES.find((s) => s.id === selectedSound);
-
-    if (sound && sound.url) {
-      if (audio.src !== sound.url) {
-        audio.src = sound.url;
-      }
-
-      if (timerRunning) {
-        audio.play().catch((e) => console.error("Audio play failed:", e));
-      } else {
-        audio.pause();
-      }
-    } else {
-      audio.pause();
-      audio.src = "";
-    }
-
-    return () => {
-      audio.pause();
-    };
-  }, [selectedSound, timerRunning]);
-
-  // Update volume
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = volume / 100;
-    }
-  }, [volume]);
+  const isLoading = swrLoading;
 
   // Handle task selection from URL and auto-start
   useEffect(() => {
     if (taskIdFromUrl && tasks.length > 0 && !isLoading) {
-      const taskExists = tasks.find((t) => t.id === taskIdFromUrl);
+      const taskExists = tasks.find((t: Task) => t.id === taskIdFromUrl);
 
       if (taskExists) {
         setSelectedTaskId(taskIdFromUrl);
@@ -163,28 +117,7 @@ export default function FocusPage() {
   }, [taskIdFromUrl]);
 
   const fetchActiveTasks = async () => {
-    try {
-      setIsLoading(true);
-      const res = await fetch("/api/tasks");
-      if (res.ok) {
-        const data = await res.json();
-
-        let tasksData = [];
-        if (data.tasks && Array.isArray(data.tasks)) {
-          tasksData = data.tasks;
-        } else if (Array.isArray(data)) {
-          tasksData = data;
-        }
-
-        const activeTasks = tasksData.filter((t: Task) => !t.completed);
-        setTasks(activeTasks);
-      }
-    } catch (error) {
-      console.error("Failed to fetch tasks:", error);
-      toast.error("Failed to load tasks");
-    } finally {
-      setIsLoading(false);
-    }
+    await mutate("/api/tasks");
   };
 
   const handleStartWithTask = async (taskId: string) => {
@@ -232,6 +165,12 @@ export default function FocusPage() {
       toast.success("Focus session completed!", {
         description: `${formatTime(elapsed)} recorded`,
       });
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ["#6366f1", "#8b5cf6", "#ec4899"],
+      });
       setSelectedTaskId("");
       hasAutoStarted.current = false;
 
@@ -265,16 +204,86 @@ export default function FocusPage() {
   };
 
   const priorityColors: Record<string, string> = {
-    low: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300",
+    low: "bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300",
     medium:
-      "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300",
-    high: "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300",
+      "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300",
+    high: "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300",
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header with Back Button */}
-      <div className="flex items-center gap-4">
+    <div
+      className={cn(
+        "transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)]",
+        isZenMode
+          ? "fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-8"
+          : "max-w-4xl mx-auto space-y-6 relative min-h-[80vh] flex flex-col justify-center"
+      )}
+    >
+      {/* Ambient Background */}
+      <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
+        <motion.div
+          animate={{
+            background: timerRunning
+              ? "radial-gradient(circle at 50% 50%, rgba(124, 58, 237, 0.15) 0%, rgba(0, 0, 0, 0) 70%)"
+              : "radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.05) 0%, rgba(0, 0, 0, 0) 70%)",
+          }}
+          transition={{ duration: 2 }}
+          className="absolute inset-0 w-full h-full"
+        />
+        <motion.div
+          animate={{
+            scale: timerRunning ? [1, 1.2, 1] : 1,
+            opacity: timerRunning ? 0.3 : 0.1,
+          }}
+          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/20 rounded-full blur-[100px]"
+        />
+      </div>
+
+      {/* Zen Mode Toggle */}
+      <div
+        className={cn(
+          "absolute z-50 transition-all duration-500",
+          isZenMode ? "top-6 right-6" : "top-0 right-0"
+        )}
+      >
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsZenMode(!isZenMode)}
+                className={cn(
+                  "rounded-full transition-all duration-300",
+                  isZenMode
+                    ? "bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md h-12 w-12"
+                    : "hover:bg-muted h-10 w-10 text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {isZenMode ? (
+                  <Minimize2 className="w-5 h-5" />
+                ) : (
+                  <Maximize2 className="w-5 h-5" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              <p>{isZenMode ? "Exit Zen Mode" : "Enter Zen Mode"}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+
+      {/* Header with Back Button (Hidden in Zen Mode) */}
+      <div
+        className={cn(
+          "flex items-center gap-4 transition-all duration-500 origin-top",
+          isZenMode
+            ? "opacity-0 -translate-y-10 scale-95 pointer-events-none absolute"
+            : "opacity-100 translate-y-0 scale-100"
+        )}
+      >
         <Link href="/dashboard/tasks">
           <Button variant="ghost" size="icon">
             <ArrowLeft className="w-5 h-5" />
@@ -292,100 +301,80 @@ export default function FocusPage() {
       </div>
 
       {/* Timer Display */}
-      <Card className="p-8 bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-950/30 dark:to-violet-950/30 border-2 glass relative z-10">
-        <div className="text-center space-y-6">
+      <Card
+        className={cn(
+          "p-10 bg-gradient-to-br from-indigo-50/50 to-violet-50/50 dark:from-indigo-950/20 dark:to-violet-950/20 border-2 glass relative z-10 transition-all duration-700 backdrop-blur-xl shadow-2xl",
+          isZenMode
+            ? "border-none shadow-none bg-transparent dark:bg-transparent scale-110"
+            : "hover:shadow-primary/10 hover:border-primary/20"
+        )}
+      >
+        <div className="text-center space-y-8">
           {/* Status */}
-          <div className="flex items-center justify-center gap-2">
-            <h3 className="text-xl font-semibold text-foreground">
+          <div className="flex items-center justify-center gap-3">
+            <h3 className="text-2xl font-bold text-foreground tracking-tight">
               {activeTimer ? activeTimer.taskTitle : "Ready to Focus"}
             </h3>
             {isPaused && (
-              <span className="px-3 py-1 text-sm bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded-full">
+              <Badge
+                variant="secondary"
+                className="px-3 py-1 text-sm font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 shadow-sm"
+              >
                 Paused
-              </span>
+              </Badge>
             )}
             {timerRunning && (
-              <span className="px-3 py-1 text-sm bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full animate-pulse">
+              <Badge
+                variant="secondary"
+                className="px-3 py-1 text-sm font-bold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 animate-pulse shadow-sm"
+              >
                 Running
-              </span>
+              </Badge>
             )}
           </div>
 
           {/* Timer */}
-          <div className="text-8xl font-bold font-mono text-foreground">
-            {formatTime(currentElapsed)}
-          </div>
-
-          {/* Soundscapes Control */}
-          <div className="max-w-md mx-auto bg-secondary/50 p-4 rounded-lg backdrop-blur-sm border border-border/50">
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
-                <Label className="text-xs font-medium mb-1.5 block text-left flex items-center gap-1">
-                  <Music className="w-3 h-3" />
-                  Soundscape
-                </Label>
-                <Select value={selectedSound} onValueChange={setSelectedSound}>
-                  <SelectTrigger className="h-8 text-sm">
-                    <SelectValue placeholder="Select sound" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SOUNDSCAPES.map((sound) => (
-                      <SelectItem key={sound.id} value={sound.id}>
-                        {sound.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="w-32 space-y-1.5 ">
-                <Label className="text-xs font-medium block text-left flex items-center gap-1">
-                  {volume === 0 ? (
-                    <VolumeX className="w-3 h-3  " />
-                  ) : (
-                    <Volume2 className="w-3 h-3" />
-                  )}
-                  Volume
-                </Label>
-                <Slider
-                  value={[volume]}
-                  onValueChange={(vals) => setVolume(vals[0])}
-                  max={100}
-                  step={1}
-                  className="py-1 "
-                />
-              </div>
-            </div>
+          <div className="transform scale-110 transition-transform duration-500">
+            <FocusTimerVisual
+              elapsedSeconds={currentElapsed}
+              isRunning={timerRunning}
+              isPaused={isPaused || false}
+            />
           </div>
 
           {/* Task Selection (only show when no active timer) */}
           {!activeTimer && (
-            <div className="max-w-md mx-auto relative z-0">
-              <Label
-                htmlFor="task-select"
-                className="text-sm font-medium mb-2 block"
-              >
-                Select a Task
+            <div className="relative z-10 max-w-md mx-auto">
+              <Label className="text-base font-semibold mb-4 block text-center text-muted-foreground/80">
+                What would you like to focus on today?
               </Label>
               <Select value={selectedTaskId} onValueChange={setSelectedTaskId}>
-                <SelectTrigger id="task-select" className="w-full">
-                  <SelectValue placeholder="Choose a task to focus on..." />
+                <SelectTrigger className="w-full h-14 text-lg bg-background/50 backdrop-blur-sm border-border/50 focus:ring-primary/20 transition-all shadow-sm hover:shadow-md hover:border-primary/30">
+                  <SelectValue placeholder="Select a task..." />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[300px]">
                   {tasks.length === 0 ? (
-                    <div className="p-4 text-center text-sm text-slate-500">
-                      No active tasks available
+                    <div className="p-4 text-center text-muted-foreground text-sm">
+                      No pending tasks found
                     </div>
                   ) : (
-                    tasks.map((task) => (
-                      <SelectItem key={task.id} value={task.id}>
-                        <div className="flex items-center gap-2">
-                          <span>{task.title}</span>
+                    tasks.map((task: Task) => (
+                      <SelectItem
+                        key={task.id}
+                        value={task.id}
+                        className="py-3 cursor-pointer focus:bg-primary/10 focus:text-primary transition-colors"
+                      >
+                        <div className="flex items-center justify-between w-full gap-4">
+                          <span className="truncate font-medium">
+                            {task.title}
+                          </span>
                           {task.priority && (
                             <Badge
-                              variant="outline"
-                              className={`text-xs ${
+                              variant="secondary"
+                              className={cn(
+                                "text-[10px] uppercase tracking-wider h-5 px-1.5",
                                 priorityColors[task.priority.toLowerCase()]
-                              }`}
+                              )}
                             >
                               {task.priority}
                             </Badge>
@@ -400,15 +389,15 @@ export default function FocusPage() {
           )}
 
           {/* Controls */}
-          <div className="flex justify-center gap-3 flex-wrap">
+          <div className="flex justify-center gap-4 flex-wrap items-center pt-4">
             {!activeTimer ? (
               <Button
                 size="lg"
                 onClick={handleStart}
-                className="gap-2 px-8"
+                className="gap-3 px-10 h-14 text-lg rounded-full shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:scale-105 transition-all duration-300 group"
                 disabled={isLoading || !selectedTaskId}
               >
-                <Play className="w-6 h-6" />
+                <Play className="w-6 h-6 fill-current group-hover:scale-110 transition-transform" />
                 Start Focus Session
               </Button>
             ) : timerRunning ? (
@@ -417,21 +406,21 @@ export default function FocusPage() {
                   size="lg"
                   variant="outline"
                   onClick={handlePause}
-                  className="gap-2"
+                  className="gap-2 h-12 px-6 rounded-full border-2 hover:bg-secondary/80 transition-all"
                   disabled={isSaving}
                 >
-                  <Pause className="w-6 h-6" />
+                  <Pause className="w-5 h-5 fill-current" />
                   {isSaving ? "Saving..." : "Pause"}
                 </Button>
                 <Button
                   size="lg"
                   variant="destructive"
                   onClick={handleStopAndSave}
-                  className="gap-2"
+                  className="gap-2 h-12 px-6 rounded-full shadow-lg shadow-destructive/20 hover:shadow-destructive/30 hover:scale-105 transition-all"
                   disabled={isSaving}
                 >
-                  <StopCircle className="w-6 h-6" />
-                  {isSaving ? "Saving..." : "Complete Session"}
+                  <StopCircle className="w-5 h-5 fill-current" />
+                  {isSaving ? "Saving..." : "Complete"}
                 </Button>
               </>
             ) : (
@@ -439,30 +428,30 @@ export default function FocusPage() {
                 <Button
                   size="lg"
                   onClick={handleResume}
-                  className="gap-2"
+                  className="gap-2 h-12 px-8 rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:scale-105 transition-all"
                   disabled={isSaving}
                 >
-                  <Play className="w-6 h-6" />
+                  <Play className="w-5 h-5 fill-current" />
                   Resume
                 </Button>
                 <Button
                   size="lg"
                   variant="destructive"
                   onClick={handleStopAndSave}
-                  className="gap-2"
+                  className="gap-2 h-12 px-6 rounded-full shadow-lg shadow-destructive/20 hover:shadow-destructive/30 hover:scale-105 transition-all"
                   disabled={isSaving}
                 >
-                  <StopCircle className="w-6 h-6" />
-                  {isSaving ? "Saving..." : "Complete Session"}
+                  <StopCircle className="w-5 h-5 fill-current" />
+                  {isSaving ? "Saving..." : "Complete"}
                 </Button>
                 <Button
                   size="lg"
                   variant="outline"
                   onClick={handleDiscard}
-                  className="gap-2 border-red-300 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400"
+                  className="gap-2 h-12 px-6 rounded-full border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-900 dark:text-rose-400 dark:hover:bg-rose-950/30 transition-all"
                   disabled={isSaving}
                 >
-                  <XCircle className="w-6 h-6" />
+                  <XCircle className="w-5 h-5" />
                   Discard
                 </Button>
               </>
@@ -470,78 +459,76 @@ export default function FocusPage() {
           </div>
 
           {/* Notes */}
-          {activeTimer && (
-            <div className="max-w-2xl mx-auto space-y-2 text-left">
-              <Label htmlFor="notes" className="text-sm font-medium">
-                Session Notes (Optional)
+          {activeTimer && !isZenMode && (
+            <div className="max-w-xl mx-auto space-y-3 text-left pt-4 border-t border-border/50">
+              <Label
+                htmlFor="notes"
+                className="text-sm font-semibold flex items-center gap-2"
+              >
+                <ClipboardList className="w-4 h-4 text-muted-foreground" />
+                Session Notes
               </Label>
               <Textarea
                 id="notes"
-                placeholder="Add notes about this focus session..."
+                placeholder="Jot down your thoughts, distractions, or accomplishments..."
                 value={currentNotes}
                 onChange={(e) => updateNotes(e.target.value)}
                 rows={3}
                 disabled={isSaving}
-                className="resize-none bg-white dark:bg-gray-900"
+                className="resize-none bg-background/50 focus:bg-background transition-all border-border/50 focus:border-primary/50"
               />
             </div>
           )}
         </div>
       </Card>
-
-      {/* Active Tasks List */}
-      {!activeTimer && tasks.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-lg font-semibold text-foreground">
-            Active Tasks
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {tasks.slice(0, 6).map((task) => (
-              <Card
-                key={task.id}
-                className={cn(
-                  "p-4 hover:bg-secondary/50 transition-colors cursor-pointer glass border-border/50",
-                  selectedTaskId === task.id && "ring-2 ring-primary"
-                )}
-                onClick={() => setSelectedTaskId(task.id)}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="mt-1">
-                    {task.completed ? (
-                      <CheckCircle2 className="w-5 h-5 text-green-500" />
-                    ) : (
-                      <Circle className="w-5 h-5 text-slate-400" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground truncate">
-                      {task.title}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      {task.priority && (
-                        <Badge
-                          variant="outline"
-                          className={`text-xs ${
-                            priorityColors[task.priority.toLowerCase()]
-                          }`}
-                        >
-                          {task.priority}
-                        </Badge>
-                      )}
-                      {task.deadline && (
-                        <span className="text-xs text-muted-foreground">
-                          <Clock className="w-3 h-3 inline mr-1" />
-                          {new Date(task.deadline).toLocaleDateString()}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
+  );
+}
+
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("ErrorBoundary caught an error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-4 border border-red-500 bg-red-50 text-red-900 rounded">
+          <h2 className="text-lg font-bold">Something went wrong</h2>
+          <p>{this.state.error?.message}</p>
+          <pre className="text-xs mt-2 overflow-auto">
+            {this.state.error?.stack}
+          </pre>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+import { FocusPageSkeleton } from "@/components/skeletons/focus-page-skeleton";
+
+import { FocusTimerVisual } from "@/components/focus/focus-timer-visual";
+
+export default function FocusPage() {
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<FocusPageSkeleton />}>
+        <FocusContent />
+      </Suspense>
+    </ErrorBoundary>
   );
 }

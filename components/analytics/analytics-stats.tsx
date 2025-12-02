@@ -38,8 +38,8 @@ export function AnalyticsStats({ stats }: AnalyticsStatsProps) {
       value: formatTime(stats.totalFocusTime),
       subtitle: `${stats.totalSessions} sessions`,
       icon: Clock,
-      color: "bg-blue-500",
-      bgColor: "bg-blue-50 dark:bg-blue-950/30",
+      color: "bg-foreground",
+      bgColor: "bg-card",
     },
     {
       title: "This Week",
@@ -47,13 +47,15 @@ export function AnalyticsStats({ stats }: AnalyticsStatsProps) {
       subtitle: (
         <span className="flex items-center gap-1">
           {stats.weekChange >= 0 ? (
-            <TrendingUp className="w-3 h-3 text-green-600" />
+            <TrendingUp className="w-3 h-3 text-foreground" />
           ) : (
-            <TrendingDown className="w-3 h-3 text-red-600" />
+            <TrendingDown className="w-3 h-3 text-muted-foreground" />
           )}
           <span
             className={
-              stats.weekChange >= 0 ? "text-green-600" : "text-red-600"
+              stats.weekChange >= 0
+                ? "text-foreground"
+                : "text-muted-foreground"
             }
           >
             {Math.abs(stats.weekChange).toFixed(1)}% vs last week
@@ -61,24 +63,24 @@ export function AnalyticsStats({ stats }: AnalyticsStatsProps) {
         </span>
       ),
       icon: Zap,
-      color: "bg-green-500",
-      bgColor: "bg-green-50 dark:bg-green-950/30",
+      color: "bg-foreground",
+      bgColor: "bg-card",
     },
     {
       title: "Avg Session",
       value: formatTime(stats.averageSessionDuration),
       subtitle: "per focus session",
       icon: Target,
-      color: "bg-purple-500",
-      bgColor: "bg-purple-50 dark:bg-purple-950/30",
+      color: "bg-foreground",
+      bgColor: "bg-card",
     },
     {
       title: "Completion Rate",
       value: `${stats.completionRate.toFixed(1)}%`,
       subtitle: `${stats.completedTasks}/${stats.totalTasks} tasks`,
       icon: CheckCircle2,
-      color: "bg-emerald-500",
-      bgColor: "bg-emerald-50 dark:bg-emerald-950/30",
+      color: "bg-foreground",
+      bgColor: "bg-card",
     },
   ];
 

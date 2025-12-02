@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -25,32 +24,40 @@ export default function TasksPage() {
   }, []);
 
   const fetchTasks = async () => {
-    const res = await axios.get("/api/tasks");
-    setTasks(res.data);
+    const res = await fetch("/api/tasks");
+    const data = await res.json();
+    setTasks(data.tasks || []);
   };
 
   const createTask = async () => {
     if (!title.trim()) return alert("Task title cannot be empty");
-    const res = await axios.post("/api/tasks", {
-      title,
-      description,
+    const res = await fetch("/api/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, description }),
     });
-    setTasks([res.data, ...tasks]);
+    const newTask = await res.json();
+    setTasks([newTask, ...tasks]);
     setTitle("");
     setDescription("");
   };
 
   const toggleComplete = async (task: Task) => {
-    const updated = await axios.put(`/api/tasks/${task.id}`, {
-      title: task.title,
-      description: task.description,
-      completed: !task.completed,
+    const res = await fetch(`/api/tasks/${task.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: task.title,
+        description: task.description,
+        completed: !task.completed,
+      }),
     });
-    setTasks(tasks.map((t) => (t.id === task.id ? updated.data : t)));
+    const updated = await res.json();
+    setTasks(tasks.map((t) => (t.id === task.id ? updated : t)));
   };
 
   const deleteTask = async (id: string) => {
-    await axios.delete(`/api/tasks/${id}`);
+    await fetch(`/api/tasks/${id}`, { method: "DELETE" });
     setTasks(tasks.filter((t) => t.id !== id));
   };
 
@@ -69,12 +76,17 @@ export default function TasksPage() {
   const saveEdit = async () => {
     if (!editTaskId) return;
     if (!editTitle.trim()) return alert("Task title cannot be empty");
-    const updated = await axios.put(`/api/tasks/${editTaskId}`, {
-      title: editTitle,
-      description: editDescription,
-      completed: tasks.find((t) => t.id === editTaskId)?.completed ?? false,
+    const res = await fetch(`/api/tasks/${editTaskId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: editTitle,
+        description: editDescription,
+        completed: tasks.find((t) => t.id === editTaskId)?.completed ?? false,
+      }),
     });
-    setTasks(tasks.map((t) => (t.id === editTaskId ? updated.data : t)));
+    const updated = await res.json();
+    setTasks(tasks.map((t) => (t.id === editTaskId ? updated : t)));
     cancelEdit();
   };
 

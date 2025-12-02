@@ -121,7 +121,14 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { title, description, priority, deadline, estimatedDuration } = body;
+    const {
+      title,
+      description,
+      priority,
+      deadline,
+      estimatedDuration,
+      categoryId,
+    } = body;
 
     // Get the highest order number to add new task at the end
     const lastTask = await prisma.task.findFirst({
@@ -140,6 +147,7 @@ export async function POST(req: NextRequest) {
         isDeleted: false,
         estimatedDuration: estimatedDuration || null,
         order: lastTask ? lastTask.order + 1 : 0,
+        categoryId: categoryId && categoryId !== "none" ? categoryId : null,
       },
       include: {
         focusSessions: true,

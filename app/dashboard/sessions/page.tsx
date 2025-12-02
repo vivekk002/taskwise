@@ -217,10 +217,10 @@ export default function SessionsPage() {
     dateFilter !== "all" || selectedTask !== "all" || groupBy !== "date";
 
   const priorityColors: Record<string, string> = {
-    low: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300",
+    low: "bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300",
     medium:
-      "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300",
-    high: "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300",
+      "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300",
+    high: "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300",
   };
 
   return (
@@ -263,12 +263,12 @@ export default function SessionsPage() {
               <p className="text-sm font-medium text-muted-foreground mb-1">
                 Total Sessions
               </p>
-              <h3 className="text-2xl font-bold text-green-500">
+              <h3 className="text-2xl font-bold text-emerald-500">
                 {totalSessions}
               </h3>
             </div>
-            <div className="bg-green-500/10 p-3 rounded-lg">
-              <Timer className="w-5 h-5 text-green-500" />
+            <div className="bg-emerald-500/10 p-3 rounded-lg">
+              <Timer className="w-5 h-5 text-emerald-500" />
             </div>
           </div>
         </Card>
@@ -279,12 +279,12 @@ export default function SessionsPage() {
               <p className="text-sm font-medium text-muted-foreground mb-1">
                 Average Duration
               </p>
-              <h3 className="text-2xl font-bold text-purple-500">
+              <h3 className="text-2xl font-bold text-violet-500">
                 {formatDuration(avgDuration)}
               </h3>
             </div>
-            <div className="bg-purple-500/10 p-3 rounded-lg">
-              <TrendingUp className="w-5 h-5 text-purple-500" />
+            <div className="bg-violet-500/10 p-3 rounded-lg">
+              <TrendingUp className="w-5 h-5 text-violet-500" />
             </div>
           </div>
         </Card>
@@ -378,7 +378,7 @@ export default function SessionsPage() {
         </div>
       ) : filteredSessions.length === 0 ? (
         <Card className="p-12 text-center">
-          <Clock className="w-12 h-12 mx-auto text-slate-400 mb-4" />
+          <Clock className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
           <p className="text-lg font-medium text-foreground mb-2">
             No sessions found
           </p>
@@ -457,7 +457,7 @@ export default function SessionsPage() {
                           )}
                         </div>
                         <div className="text-right">
-                          <p className="text-lg font-bold font-mono text-green-500">
+                          <p className="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400">
                             {formatTime(session.duration)}
                           </p>
                         </div>

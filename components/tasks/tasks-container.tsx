@@ -1,25 +1,25 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Plus,
   Search,
   Filter,
-  X,
   ArrowUpDown,
-  GripVertical,
   Tag,
   ListTodo,
+  Settings2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { TaskCard } from "./task-card";
 import { TaskCardSkeleton } from "@/components/ui/loading-skeletons";
 import { TaskDialog } from "@/components/dialogs/task-dialog";
 import { CategoryDialog } from "@/components/dialogs/category-dialog";
+import { ManageCategoriesDialog } from "@/components/dialogs/manage-categories-dialog";
 import { ConfirmDialog } from "@/components/dialogs/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   Select,
@@ -29,12 +29,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
   DragDropContext,
   Droppable,
   Draggable,
   DropResult,
 } from "@hello-pangea/dnd";
 import type { TaskWithRelations } from "@/types";
+import { TaskFilters, FilterState } from "./task-filters";
 
 function capitalizePriority(
   priority: string | undefined
@@ -53,8 +62,6 @@ function lowercasePriority(
   return priority.toLowerCase() as "low" | "medium" | "high";
 }
 
-type PriorityFilter = "all" | "low" | "medium" | "high";
-type StatusFilter = "all" | "active" | "completed" | "overdue";
 type SortOption =
   | "manual"
   | "newest"
@@ -65,14 +72,22 @@ type SortOption =
   | "focusTime";
 
 export function TasksContainer() {
+  const searchParams = useSearchParams();
   const [tasks, setTasks] = useState<TaskWithRelations[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+
+  // New Filter State
+  const [filters, setFilters] = useState<FilterState>({
+    status: [],
+    priority: [],
+    categories: [],
+  });
+
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+  const [isManageCategoriesOpen, setIsManageCategoriesOpen] = useState(false);
   const [editingTask, setEditingTask] =
     useState<Partial<TaskWithRelations> | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -91,6 +106,20 @@ export function TasksContainer() {
     fetchCategories();
   }, []);
 
+  // Sync filters with URL search params
+  useEffect(() => {
+    const filterParam = searchParams.get("filter");
+    if (filterParam) {
+      if (filterParam === "completed") {
+        setFilters((prev) => ({ ...prev, status: ["completed"] }));
+      } else if (filterParam === "active") {
+        setFilters((prev) => ({ ...prev, status: ["active"] }));
+      } else if (filterParam === "overdue") {
+        setFilters((prev) => ({ ...prev, status: ["overdue"] }));
+      }
+    }
+  }, [searchParams]);
+
   const fetchTasks = async () => {
     try {
       setIsLoading(true);
@@ -107,11 +136,8 @@ export function TasksContainer() {
       if (data.tasks && Array.isArray(data.tasks)) {
         setTasks(data.tasks);
       } else if (Array.isArray(data)) {
-        // Fallback for backward compatibility
         setTasks(data);
       } else {
-        console.error("Invalid tasks data structure:", data);
-        toast.error("Invalid tasks data");
         setTasks([]);
       }
     } catch (error) {
@@ -181,6 +207,7 @@ export function TasksContainer() {
     priority: "Low" | "Medium" | "High";
     description?: string;
     deadline?: Date;
+    categoryId?: string;
   }) => {
     try {
       const requestData = {
@@ -200,9 +227,7 @@ export function TasksContainer() {
           const newTask = await res.json();
           setTasks((prevTasks) => [newTask, ...prevTasks]);
           handleCloseDialog();
-          toast.success("Task created successfully!", {
-            description: newTask.title,
-          });
+          toast.success("Task created successfully!");
         } else {
           toast.error("Failed to create task");
         }
@@ -219,9 +244,7 @@ export function TasksContainer() {
             prevTasks.map((t) => (t.id === editingTask.id ? updatedTask : t))
           );
           handleCloseDialog();
-          toast.success("Task updated successfully!", {
-            description: updatedTask.title,
-          });
+          toast.success("Task updated successfully!");
         } else {
           toast.error("Failed to update task");
         }
@@ -249,13 +272,9 @@ export function TasksContainer() {
         );
 
         if (completed) {
-          toast.success("Task completed! 🎉", {
-            description: task?.title,
-          });
+          toast.success("Task completed! 🎉");
         } else {
-          toast.info("Task marked as incomplete", {
-            description: task?.title,
-          });
+          toast.info("Task marked as incomplete");
         }
       } else {
         toast.error("Failed to update task");
@@ -263,6 +282,31 @@ export function TasksContainer() {
     } catch (error) {
       console.error("Failed to toggle task:", error);
       toast.error("Failed to update task");
+    }
+  };
+
+  const handleDeleteCategory = async (categoryId: string) => {
+    try {
+      const res = await fetch(`/api/categories/${categoryId}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setCategories((prev) => prev.filter((c) => c.id !== categoryId));
+        // Also update tasks that had this category to remove it
+        setTasks((prev) =>
+          prev.map((t) =>
+            t.categoryId === categoryId
+              ? { ...t, categoryId: null, category: null }
+              : t
+          )
+        );
+      } else {
+        throw new Error("Failed to delete category");
+      }
+    } catch (error) {
+      console.error("Failed to delete category:", error);
+      throw error;
     }
   };
 
@@ -282,9 +326,7 @@ export function TasksContainer() {
         setTasks((prevTasks) =>
           prevTasks.filter((t) => t.id !== deleteConfirm.taskId)
         );
-        toast.success("Task deleted", {
-          description: deleteConfirm.taskTitle,
-        });
+        toast.success("Task deleted");
       } else {
         toast.error("Failed to delete task");
       }
@@ -296,10 +338,17 @@ export function TasksContainer() {
     }
   };
 
+  const handleFilterChange = (key: keyof FilterState, value: string[]) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
   const handleClearFilters = () => {
     setSearchQuery("");
-    setPriorityFilter("all");
-    setStatusFilter("all");
+    setFilters({
+      status: [],
+      priority: [],
+      categories: [],
+    });
     setSortBy("newest");
     toast.info("Filters cleared");
   };
@@ -316,22 +365,11 @@ export function TasksContainer() {
     const [reorderedItem] = newTasks.splice(sourceIndex, 1);
     newTasks.splice(destinationIndex, 0, reorderedItem);
 
-    // Optimistic update
-    // We need to update the main 'tasks' state, not just the filtered one
-    // This is tricky with filters, so we only allow drag when filters are mostly empty or we handle it carefully
-    // For now, we'll update the local state to reflect the visual change
-    // But since 'filteredTasks' is derived, we need to update 'tasks'
-
-    // Simplification: Only allow reordering when showing all tasks (no search/filter) or handle it by finding the item in main list
-    // Better approach: Update the 'order' field of the affected tasks
-
     const updatedTasks = newTasks.map((task, index) => ({
       ...task,
       order: index,
     }));
 
-    // Update local state immediately
-    // We need to merge these updated tasks back into the main 'tasks' array
     const taskMap = new Map(tasks.map((t) => [t.id, t]));
     updatedTasks.forEach((t) => taskMap.set(t.id, t));
     setTasks(Array.from(taskMap.values()));
@@ -350,14 +388,15 @@ export function TasksContainer() {
     } catch (error) {
       console.error("Failed to reorder tasks:", error);
       toast.error("Failed to save new order");
-      fetchTasks(); // Revert on error
+      fetchTasks();
     }
   };
 
   const isFiltered =
     searchQuery ||
-    priorityFilter !== "all" ||
-    statusFilter !== "all" ||
+    filters.status.length > 0 ||
+    filters.priority.length > 0 ||
+    filters.categories.length > 0 ||
     sortBy !== "newest";
 
   const sortTasks = (tasksToSort: TaskWithRelations[]): TaskWithRelations[] => {
@@ -366,19 +405,16 @@ export function TasksContainer() {
     switch (sortBy) {
       case "manual":
         return sorted.sort((a, b) => (a.order || 0) - (b.order || 0));
-
       case "newest":
         return sorted.sort(
           (a, b) =>
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
-
       case "oldest":
         return sorted.sort(
           (a, b) =>
             new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         );
-
       case "deadline":
         return sorted.sort((a, b) => {
           if (!a.deadline) return 1;
@@ -387,7 +423,6 @@ export function TasksContainer() {
             new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
           );
         });
-
       case "priority":
         const priorityOrder = { high: 0, medium: 1, low: 2 };
         return sorted.sort((a, b) => {
@@ -399,17 +434,14 @@ export function TasksContainer() {
             "medium";
           return priorityOrder[aPriority] - priorityOrder[bPriority];
         });
-
       case "title":
         return sorted.sort((a, b) => a.title.localeCompare(b.title));
-
       case "focusTime":
         return sorted.sort((a, b) => {
           const aTime = a.totalFocusTime || 0;
           const bTime = b.totalFocusTime || 0;
           return bTime - aTime;
         });
-
       default:
         return sorted;
     }
@@ -421,25 +453,39 @@ export function TasksContainer() {
           const matchesSearch = task.title
             .toLowerCase()
             .includes(searchQuery.toLowerCase());
-          const matchesPriority =
-            priorityFilter === "all" ||
-            task.priority?.toLowerCase() === priorityFilter;
 
+          // Priority Filter (Multi-select)
+          const matchesPriority =
+            filters.priority.length === 0 ||
+            (task.priority &&
+              filters.priority.includes(task.priority.toLowerCase()));
+
+          // Status Filter (Multi-select)
           let matchesStatus = true;
-          if (statusFilter === "completed") {
-            matchesStatus = task.completed;
-          } else if (statusFilter === "active") {
-            matchesStatus = !task.completed;
-          } else if (statusFilter === "overdue") {
-            const hasDeadline =
-              task.deadline !== null && task.deadline !== undefined;
-            const isOverdue = hasDeadline
-              ? new Date(task.deadline!) < new Date()
-              : false;
-            matchesStatus = !task.completed && isOverdue;
+          if (filters.status.length > 0) {
+            const isCompleted = task.completed;
+            const isOverdue =
+              !task.completed &&
+              task.deadline &&
+              new Date(task.deadline) < new Date();
+            const isActive = !task.completed && !isOverdue;
+
+            matchesStatus = filters.status.some((status) => {
+              if (status === "active") return isActive;
+              if (status === "completed") return isCompleted;
+              if (status === "overdue") return isOverdue;
+              return false;
+            });
           }
 
-          return matchesSearch && matchesPriority && matchesStatus;
+          // Category Filter (Multi-select)
+          const matchesCategory =
+            filters.categories.length === 0 ||
+            (task.categoryId && filters.categories.includes(task.categoryId));
+
+          return (
+            matchesSearch && matchesPriority && matchesStatus && matchesCategory
+          );
         })
       )
     : [];
@@ -460,292 +506,209 @@ export function TasksContainer() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card/50 p-6 rounded-xl border border-border/50 backdrop-blur-sm">
         <div>
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-white">
+          <h2 className="text-3xl font-bold text-foreground tracking-tight">
             Tasks
           </h2>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-            {filteredTasks.length} of {tasks.length} tasks
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage and organize your {filteredTasks.length} tasks
           </p>
         </div>
         <div className="flex gap-2">
           <Button
             variant="outline"
+            onClick={() => setIsManageCategoriesOpen(true)}
+            className="hover:bg-secondary/80"
+          >
+            <Settings2 className="mr-2 h-4 w-4" />
+            Manage
+          </Button>
+          <Button
+            variant="outline"
             onClick={() => setIsCategoryDialogOpen(true)}
+            className="hover:bg-secondary/80"
           >
             <Tag className="mr-2 h-4 w-4" />
-            New Category
+            Category
           </Button>
-          <Button onClick={() => handleOpenDialog()}>
+          <Button
+            onClick={() => handleOpenDialog()}
+            className="shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
+          >
             <Plus className="mr-2 h-4 w-4" />
             New Task
           </Button>
         </div>
       </div>
 
-      {/* Search and Sort Row */}
-      <div className="flex gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search tasks..."
-            value={searchQuery}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setSearchQuery(e.target.value)
-            }
-            className="pl-10"
-          />
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        {/* Sidebar Filters (Desktop) */}
+        <div className="hidden lg:block col-span-1 h-full">
+          <div className="sticky top-6 space-y-4">
+            <TaskFilters
+              filters={filters}
+              onFilterChange={handleFilterChange}
+              categories={categories}
+              counts={counts}
+              className="bg-card/50 border rounded-xl p-5 shadow-sm backdrop-blur-sm"
+            />
+          </div>
         </div>
 
-        {/* Sort Dropdown */}
-        <Select
-          value={sortBy}
-          onValueChange={(value) => setSortBy(value as SortOption)}
-        >
-          <SelectTrigger className="w-[200px]">
-            <ArrowUpDown className="w-4 h-4 mr-2" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="manual">Manual Order</SelectItem>
-            <SelectItem value="newest">Newest First</SelectItem>
-            <SelectItem value="oldest">Oldest First</SelectItem>
-            <SelectItem value="deadline">By Deadline</SelectItem>
-            <SelectItem value="priority">By Priority</SelectItem>
-            <SelectItem value="title">By Title (A-Z)</SelectItem>
-            <SelectItem value="focusTime">By Focus Time</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+        {/* Task Grid (Main Content) */}
+        <div className="col-span-1 lg:col-span-3 space-y-6">
+          {/* Mobile Filter & Search Bar */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Mobile Filter Trigger */}
+            <div className="lg:hidden">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" className="w-full">
+                    <Filter className="h-4 w-4 mr-2" />
+                    Filters
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left">
+                  <SheetHeader>
+                    <SheetTitle>Filters</SheetTitle>
+                    <SheetDescription>Refine your task list</SheetDescription>
+                  </SheetHeader>
+                  <div className="mt-4">
+                    <TaskFilters
+                      filters={filters}
+                      onFilterChange={handleFilterChange}
+                      categories={categories}
+                      counts={counts}
+                    />
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
 
-      {/* Filters */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-            Filters
-          </span>
+            <div className="relative flex-1 group">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+              <Input
+                placeholder="Search tasks..."
+                value={searchQuery}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setSearchQuery(e.target.value)
+                }
+                className="pl-10 bg-background/50 border-border/50 focus:bg-background transition-all"
+              />
+            </div>
+
+            <Select
+              value={sortBy}
+              onValueChange={(value) => setSortBy(value as SortOption)}
+            >
+              <SelectTrigger className="w-full sm:w-[200px] bg-background/50 border-border/50">
+                <ArrowUpDown className="w-4 h-4 mr-2 text-muted-foreground" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="manual">Manual Order</SelectItem>
+                <SelectItem value="newest">Newest First</SelectItem>
+                <SelectItem value="oldest">Oldest First</SelectItem>
+                <SelectItem value="deadline">By Deadline</SelectItem>
+                <SelectItem value="priority">By Priority</SelectItem>
+                <SelectItem value="title">By Title (A-Z)</SelectItem>
+                <SelectItem value="focusTime">By Focus Time</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Active Filters Summary (Optional, if needed for clarity) */}
           {isFiltered && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClearFilters}
-              className="h-7 text-xs gap-1"
-            >
-              <X className="w-3 h-3" />
-              Clear All
-            </Button>
-          )}
-        </div>
-
-        <div className="flex flex-wrap gap-3">
-          {/* Status Filter */}
-          <div className="flex-1 min-w-[200px]">
-            <label className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 block">
-              Status
-            </label>
-            <Select
-              value={statusFilter}
-              onValueChange={(value) => setStatusFilter(value as StatusFilter)}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Tasks ({counts.all})</SelectItem>
-                <SelectItem value="active">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-blue-500" />
-                    Active ({counts.active})
-                  </span>
-                </SelectItem>
-                <SelectItem value="completed">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-green-500" />
-                    Completed ({counts.completed})
-                  </span>
-                </SelectItem>
-                <SelectItem value="overdue">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-red-500" />
-                    Overdue ({counts.overdue})
-                  </span>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Priority Filter */}
-          <div className="flex-1 min-w-[200px]">
-            <label className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 block">
-              Priority
-            </label>
-            <Select
-              value={priorityFilter}
-              onValueChange={(value) =>
-                setPriorityFilter(value as PriorityFilter)
-              }
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">
-                  All Priorities ({counts.all})
-                </SelectItem>
-                <SelectItem value="low">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-blue-500" />
-                    Low ({counts.low})
-                  </span>
-                </SelectItem>
-                <SelectItem value="medium">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-yellow-500" />
-                    Medium ({counts.medium})
-                  </span>
-                </SelectItem>
-                <SelectItem value="high">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-red-500" />
-                    High ({counts.high})
-                  </span>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Active Filters Display */}
-        {isFiltered && (
-          <div className="flex flex-wrap gap-2">
-            {searchQuery && (
-              <Badge variant="secondary" className="gap-1">
-                Search: "{searchQuery}"
-                <X
-                  className="w-3 h-3 cursor-pointer"
-                  onClick={() => setSearchQuery("")}
-                />
-              </Badge>
-            )}
-            {priorityFilter !== "all" && (
-              <Badge variant="secondary" className="gap-1">
-                Priority:{" "}
-                {priorityFilter.charAt(0).toUpperCase() +
-                  priorityFilter.slice(1)}
-                <X
-                  className="w-3 h-3 cursor-pointer"
-                  onClick={() => setPriorityFilter("all")}
-                />
-              </Badge>
-            )}
-            {statusFilter !== "all" && (
-              <Badge variant="secondary" className="gap-1">
-                Status:{" "}
-                {statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
-                <X
-                  className="w-3 h-3 cursor-pointer"
-                  onClick={() => setStatusFilter("all")}
-                />
-              </Badge>
-            )}
-            {sortBy !== "newest" && (
-              <Badge variant="secondary" className="gap-1">
-                <ArrowUpDown className="w-3 h-3" />
-                Sort:{" "}
-                {sortBy === "oldest"
-                  ? "Oldest"
-                  : sortBy === "deadline"
-                  ? "Deadline"
-                  : sortBy === "priority"
-                  ? "Priority"
-                  : sortBy === "title"
-                  ? "Title"
-                  : sortBy === "manual"
-                  ? "Manual"
-                  : "Focus Time"}
-                <X
-                  className="w-3 h-3 cursor-pointer"
-                  onClick={() => setSortBy("newest")}
-                />
-              </Badge>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Tasks Grid */}
-      {isLoading ? (
-        <TaskCardSkeleton count={6} />
-      ) : (
-        <DragDropContext onDragEnd={onDragEnd}>
-          <Droppable droppableId="tasks" direction="horizontal">
-            {(provided) => (
-              <div
-                {...provided.droppableProps}
-                ref={provided.innerRef}
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+            <div className="flex items-center justify-between bg-muted/30 p-2 rounded-md text-sm">
+              <span className="text-muted-foreground">
+                Showing {filteredTasks.length} results
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearFilters}
+                className="h-auto p-0 text-primary hover:underline"
               >
-                {filteredTasks.length > 0 ? (
-                  <>
-                    {filteredTasks.map((task, index) => (
-                      <Draggable
-                        key={task.id}
-                        draggableId={task.id}
-                        index={index}
-                        isDragDisabled={sortBy !== "manual"}
-                      >
-                        {(provided) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
+                Clear all filters
+              </Button>
+            </div>
+          )}
+
+          {/* Tasks List */}
+          {isLoading ? (
+            <TaskCardSkeleton count={6} />
+          ) : (
+            <DragDropContext onDragEnd={onDragEnd}>
+              <Droppable droppableId="tasks" direction="vertical">
+                {(provided) => (
+                  <div
+                    {...provided.droppableProps}
+                    ref={provided.innerRef}
+                    className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                  >
+                    {filteredTasks.length > 0 ? (
+                      <>
+                        {filteredTasks.map((task, index) => (
+                          <Draggable
+                            key={task.id}
+                            draggableId={task.id}
+                            index={index}
+                            isDragDisabled={sortBy !== "manual"}
                           >
-                            <TaskCard
-                              task={task}
-                              onEdit={() => handleOpenDialog(task)}
-                              onDelete={() =>
-                                handleDeleteClick(task.id, task.title)
-                              }
-                              onToggle={handleToggle}
-                              onRefresh={fetchTasks}
-                              isLoading={false}
-                            />
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                  </>
-                ) : (
-                  <div className="col-span-full">
-                    {isFiltered ? (
-                      <EmptyState
-                        icon={Search}
-                        title="No tasks found"
-                        description="Try adjusting your filters or search query to find what you're looking for."
-                        actionLabel="Clear Filters"
-                        onAction={handleClearFilters}
-                      />
+                            {(provided) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                {...provided.dragHandleProps}
+                              >
+                                <TaskCard
+                                  task={task}
+                                  onEdit={() => handleOpenDialog(task)}
+                                  onDelete={() =>
+                                    handleDeleteClick(task.id, task.title)
+                                  }
+                                  onToggle={handleToggle}
+                                  onRefresh={fetchTasks}
+                                  isLoading={false}
+                                />
+                              </div>
+                            )}
+                          </Draggable>
+                        ))}
+                      </>
                     ) : (
-                      <EmptyState
-                        icon={ListTodo}
-                        title="No tasks yet"
-                        description="Create your first task to get started on your productivity journey!"
-                        actionLabel="Create Task"
-                        onAction={() => handleOpenDialog()}
-                      />
+                      <div className="col-span-full">
+                        {isFiltered ? (
+                          <EmptyState
+                            icon={Search}
+                            title="No tasks found"
+                            description="Try adjusting your filters or search query."
+                            actionLabel="Clear Filters"
+                            onAction={handleClearFilters}
+                          />
+                        ) : (
+                          <EmptyState
+                            icon={ListTodo}
+                            title="No tasks yet"
+                            description="Create your first task to get started!"
+                            actionLabel="Create Task"
+                            onAction={() => handleOpenDialog()}
+                          />
+                        )}
+                      </div>
                     )}
+                    {provided.placeholder}
                   </div>
                 )}
-                {provided.placeholder}
-              </div>
-            )}
-          </Droppable>
-        </DragDropContext>
-      )}
+              </Droppable>
+            </DragDropContext>
+          )}
+        </div>
+      </div>
 
-      {/* Task Dialog */}
+      {/* Dialogs */}
       {isDialogOpen && (
         <TaskDialog
           open={isDialogOpen}
@@ -768,23 +731,26 @@ export function TasksContainer() {
         />
       )}
 
-      {/* Category Dialog */}
       <CategoryDialog
         open={isCategoryDialogOpen}
         onClose={() => setIsCategoryDialogOpen(false)}
         onSave={handleCreateCategory}
       />
 
-      {/* Delete Confirmation Dialog */}
+      <ManageCategoriesDialog
+        open={isManageCategoriesOpen}
+        onClose={() => setIsManageCategoriesOpen(false)}
+        categories={categories}
+        onDelete={handleDeleteCategory}
+      />
+
       <ConfirmDialog
         open={deleteConfirm.open}
         onOpenChange={(open) => setDeleteConfirm({ ...deleteConfirm, open })}
         title="Delete Task"
-        description={`Are you sure you want to delete "${deleteConfirm.taskTitle}"? This action cannot be undone.`}
+        description={`Are you sure you want to delete "${deleteConfirm.taskTitle}"?`}
         confirmText="Delete"
-        cancelText="Cancel"
         onConfirm={handleDeleteConfirm}
-        variant="destructive"
       />
     </div>
   );

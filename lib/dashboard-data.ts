@@ -132,6 +132,105 @@ export async function getDashboardStats() {
     });
   }
 
+  // Get focus hours data for the past 7 days
+  const dailyFocusData = [];
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    date.setHours(0, 0, 0, 0);
+
+    const nextDate = new Date(date);
+    nextDate.setDate(nextDate.getDate() + 1);
+
+    const daySessions = await prisma.focusSession.findMany({
+      where: {
+        userId: user.id,
+        startedAt: { gte: date, lt: nextDate },
+      },
+    });
+
+    const dayHours = daySessions.reduce((sum, s) => sum + s.duration, 0) / 3600;
+
+    dailyFocusData.push({
+      date: days[date.getDay()],
+      hours: Math.round(dayHours * 10) / 10,
+    });
+  }
+
+  // Get focus hours data for the past 4 weeks
+  const weeklyFocusData = [];
+  for (let i = 3; i >= 0; i--) {
+    const weekEnd = new Date();
+    weekEnd.setDate(weekEnd.getDate() - i * 7);
+    weekEnd.setHours(23, 59, 59, 999);
+
+    const weekStart = new Date(weekEnd);
+    weekStart.setDate(weekStart.getDate() - 6);
+    weekStart.setHours(0, 0, 0, 0);
+
+    const weekSessionsData = await prisma.focusSession.findMany({
+      where: {
+        userId: user.id,
+        startedAt: { gte: weekStart, lte: weekEnd },
+      },
+    });
+
+    const weekHours =
+      weekSessionsData.reduce((sum, s) => sum + s.duration, 0) / 3600;
+
+    weeklyFocusData.push({
+      week: `Week ${4 - i}`,
+      hours: Math.round(weekHours * 10) / 10,
+    });
+  }
+
+  // Get focus hours data for the past 6 months
+  const monthlyFocusData = [];
+  const monthNames = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+
+  for (let i = 5; i >= 0; i--) {
+    const date = new Date();
+    date.setMonth(date.getMonth() - i);
+    const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+    const monthEnd = new Date(
+      date.getFullYear(),
+      date.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999
+    );
+
+    const monthSessionsData = await prisma.focusSession.findMany({
+      where: {
+        userId: user.id,
+        startedAt: { gte: monthStart, lte: monthEnd },
+      },
+    });
+
+    const monthHours =
+      monthSessionsData.reduce((sum, s) => sum + s.duration, 0) / 3600;
+
+    monthlyFocusData.push({
+      month: monthNames[monthStart.getMonth()],
+      hours: Math.round(monthHours * 10) / 10,
+    });
+  }
+
   // Get today's tasks (with details)
   const todaysTasksList = allTasks
     .filter(
@@ -223,6 +322,9 @@ export async function getDashboardStats() {
       completedChange,
     },
     dailyOverview,
+    dailyFocusData,
+    weeklyFocusData,
+    monthlyFocusData,
     todaysTasks: todaysTasksList,
     upcomingDeadlines: upcomingDeadlinesList,
     recentSessions,
@@ -253,6 +355,9 @@ function getEmptyStats() {
       { date: "Sat", completed: 0 },
       { date: "Sun", completed: 0 },
     ],
+    dailyFocusData: [],
+    weeklyFocusData: [],
+    monthlyFocusData: [],
     todaysTasks: [],
     upcomingDeadlines: [],
     recentSessions: [],

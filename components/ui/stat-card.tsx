@@ -29,8 +29,8 @@ export const StatCard = memo(function StatCard({
     <Card className={cn("glass p-6 border-white/5", className)}>
       <div className="flex items-center justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-slate-400">{title}</p>
-          <p className="text-2xl font-bold text-white mt-2">{value}</p>
+          <p className="text-sm font-medium text-muted-foreground">{title}</p>
+          <p className="text-2xl font-bold text-foreground mt-2">{value}</p>
 
           {trend && (
             <div className="flex items-center gap-1 mt-2">
@@ -38,27 +38,27 @@ export const StatCard = memo(function StatCard({
                 <TrendingUp
                   className={cn(
                     "w-4 h-4",
-                    trend.isPositive ? "text-green-500" : "text-red-500"
+                    trend.isPositive ? "text-foreground" : "text-foreground"
                   )}
                 />
               ) : trend.value < 0 ? (
                 <TrendingDown
                   className={cn(
                     "w-4 h-4",
-                    trend.isPositive ? "text-red-500" : "text-green-500"
+                    trend.isPositive ? "text-foreground" : "text-foreground"
                   )}
                 />
               ) : (
-                <Minus className="w-4 h-4 text-slate-500" />
+                <Minus className="w-4 h-4 text-muted-foreground" />
               )}
               <span
                 className={cn(
                   "text-sm font-medium",
-                  trend.value > 0 && trend.isPositive && "text-green-500",
-                  trend.value > 0 && !trend.isPositive && "text-red-500",
-                  trend.value < 0 && trend.isPositive && "text-red-500",
-                  trend.value < 0 && !trend.isPositive && "text-green-500",
-                  trend.value === 0 && "text-slate-500"
+                  trend.value > 0 && trend.isPositive && "text-foreground",
+                  trend.value > 0 && !trend.isPositive && "text-foreground",
+                  trend.value < 0 && trend.isPositive && "text-foreground",
+                  trend.value < 0 && !trend.isPositive && "text-foreground",
+                  trend.value === 0 && "text-muted-foreground"
                 )}
               >
                 {Math.abs(trend.value)}%
@@ -68,7 +68,7 @@ export const StatCard = memo(function StatCard({
         </div>
 
         <div className="flex-shrink-0">
-          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-500/20 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center">
             {icon}
           </div>
         </div>

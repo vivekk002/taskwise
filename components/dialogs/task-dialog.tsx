@@ -94,7 +94,7 @@ export function TaskDialog({ open, onClose, task, onSave }: TaskDialogProps) {
           priority: "Medium",
           description: "",
           deadline: undefined,
-          categoryId: undefined,
+          categoryId: "none", // Reset category to "none" explicitly
         });
       }
     } else {
@@ -149,16 +149,16 @@ export function TaskDialog({ open, onClose, task, onSave }: TaskDialogProps) {
           {/* Title */}
           <div className="space-y-2">
             <Label htmlFor="title" className="text-sm font-medium">
-              Title <span className="text-red-500">*</span>
+              Title <span className="text-foreground">*</span>
             </Label>
             <Input
               id="title"
               placeholder="Enter task title"
               {...register("title")}
-              className={cn(errors.title && "border-red-500")}
+              className={cn(errors.title && "border-foreground")}
             />
             {errors.title && (
-              <p className="text-red-600 text-sm">{errors.title.message}</p>
+              <p className="text-foreground text-sm">{errors.title.message}</p>
             )}
           </div>
 
@@ -181,19 +181,19 @@ export function TaskDialog({ open, onClose, task, onSave }: TaskDialogProps) {
                     <SelectContent>
                       <SelectItem value="Low">
                         <span className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-blue-500" />
+                          <span className="w-2 h-2 rounded-full bg-foreground" />
                           Low
                         </span>
                       </SelectItem>
                       <SelectItem value="Medium">
                         <span className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-yellow-500" />
+                          <span className="w-2 h-2 rounded-full bg-foreground" />
                           Medium
                         </span>
                       </SelectItem>
                       <SelectItem value="High">
                         <span className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-red-500" />
+                          <span className="w-2 h-2 rounded-full bg-foreground" />
                           High
                         </span>
                       </SelectItem>
@@ -212,7 +212,10 @@ export function TaskDialog({ open, onClose, task, onSave }: TaskDialogProps) {
                 control={control}
                 name="categoryId"
                 render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value || "none"}>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value || "none"}
+                  >
                     <SelectTrigger id="category" className="w-full">
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
@@ -221,14 +224,11 @@ export function TaskDialog({ open, onClose, task, onSave }: TaskDialogProps) {
                       {categories.map((category) => (
                         <SelectItem key={category.id} value={category.id}>
                           <span className="flex items-center gap-2">
-                            <span className={cn("w-2 h-2 rounded-full", {
-                              "bg-blue-500": category.color === "blue",
-                              "bg-red-500": category.color === "red",
-                              "bg-green-500": category.color === "green",
-                              "bg-yellow-500": category.color === "yellow",
-                              "bg-purple-500": category.color === "purple",
-                              "bg-gray-500": category.color === "gray",
-                            })} />
+                            <span
+                              className={cn(
+                                "w-2 h-2 rounded-full bg-foreground"
+                              )}
+                            />
                             {category.name}
                           </span>
                         </SelectItem>
@@ -270,7 +270,7 @@ export function TaskDialog({ open, onClose, task, onSave }: TaskDialogProps) {
                         variant="outline"
                         className={cn(
                           "w-full justify-start text-left font-normal",
-                          !field.value && "text-gray-500"
+                          !field.value && "text-muted-foreground"
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />

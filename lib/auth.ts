@@ -76,27 +76,15 @@ export const authOptions: NextAuthOptions = {
     error: "/auth/signin",
   },
   callbacks: {
-    async jwt({
-      token,
-      user,
-    }: {
-      token: any;
-      user?: User | undefined;
-    }): Promise<any> {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
       }
       return token;
     },
-    async session({
-      session,
-      token,
-    }: {
-      session: any;
-      token: any;
-    }): Promise<any> {
+    async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string;
+        session.user.id = token.id;
       }
       return session;
     },

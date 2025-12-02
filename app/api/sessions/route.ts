@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { awardXP, updateStreak } from "@/lib/gamification";
 
 export async function GET(req: NextRequest) {
   try {
@@ -114,6 +115,14 @@ export async function POST(req: NextRequest) {
         completed: completed ?? true,
       },
     });
+
+    // Gamification: Award XP for focus time (e.g., 10 XP per minute)
+    if (duration > 60) {
+      const minutes = Math.floor(duration / 60);
+      const xpEarned = minutes * 10;
+      await awardXP(session.user.id, xpEarned);
+      await updateStreak(session.user.id);
+    }
 
     return NextResponse.json(focusSession, { status: 201 });
   } catch (error) {

@@ -32,10 +32,10 @@ interface TaskCardProps {
 }
 
 const priorityColors: Record<string, string> = {
-  low: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-900",
+  low: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-200/50 dark:border-sky-800/50",
   medium:
-    "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border-yellow-300 dark:border-yellow-900",
-  high: "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-900",
+    "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200/50 dark:border-amber-800/50",
+  high: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200/50 dark:border-rose-800/50",
 };
 
 /**
@@ -86,7 +86,7 @@ export const TaskCard = memo(function TaskCard({
   };
 
   return (
-    <Card className="relative group transition-all hover:shadow-md p-4 glass border-border/50">
+    <Card className="relative group p-5 glass-card transition-all duration-300 hover:scale-[1.02] hover:shadow-lg active:scale-[0.99] border-border/50">
       <div className="space-y-3">
         {/* Header with checkbox and title */}
         <div className="flex items-start space-x-3">
@@ -103,9 +103,9 @@ export const TaskCard = memo(function TaskCard({
             className="shrink-0"
           >
             {task.completed ? (
-              <CheckCircle2 className="w-6 h-6 text-green-500" />
+              <CheckCircle2 className="w-6 h-6 text-foreground" />
             ) : (
-              <Circle className="w-6 h-6 text-slate-400" />
+              <Circle className="w-6 h-6 text-muted-foreground" />
             )}
           </Button>
 
@@ -156,8 +156,8 @@ export const TaskCard = memo(function TaskCard({
               className={cn(
                 "text-xs",
                 isOverdue
-                  ? "bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-300"
-                  : "bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300"
+                  ? "bg-secondary text-foreground border-border"
+                  : "bg-secondary text-muted-foreground border-border"
               )}
             >
               {isOverdue ? (
@@ -174,31 +174,17 @@ export const TaskCard = memo(function TaskCard({
           )}
           {task.priority && (
             <Badge
-              variant="outline"
-              className={priorityColors[task.priority.toLowerCase()]}
+              variant="secondary"
+              className={cn(
+                "text-xs",
+                priorityColors[task.priority.toLowerCase()]
+              )}
             >
               {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
             </Badge>
           )}
           {task.category && (
-            <Badge
-              variant="outline"
-              className={cn(
-                "text-xs",
-                task.category.color === "blue" &&
-                  "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:text-blue-300",
-                task.category.color === "red" &&
-                  "bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-300",
-                task.category.color === "green" &&
-                  "bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-300",
-                task.category.color === "yellow" &&
-                  "bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300",
-                task.category.color === "purple" &&
-                  "bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-900/30 dark:text-purple-300",
-                task.category.color === "gray" &&
-                  "bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-900/30 dark:text-gray-300"
-              )}
-            >
+            <Badge variant="secondary" className="text-xs">
               {task.category.name}
             </Badge>
           )}
@@ -206,7 +192,7 @@ export const TaskCard = memo(function TaskCard({
 
         {/* Subtask Progress */}
         {task.subtasks && task.subtasks.length > 0 && (
-          <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <ListChecks className="w-3 h-3" />
             <span>
               {task.subtasks.filter((s) => s.completed).length}/
@@ -219,9 +205,9 @@ export const TaskCard = memo(function TaskCard({
         <div className="border-t pt-3 space-y-2">
           <div className="flex items-center justify-between gap-2">
             {/* Total Focus Time Display */}
-            <div className="flex items-center gap-1 text-sm text-slate-600 dark:text-slate-400">
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <Timer className="w-4 h-4" />
-              <span className="font-mono font-medium text-slate-900 dark:text-slate-50">
+              <span className="font-mono font-medium text-foreground">
                 {task.totalFocusTime !== undefined && task.totalFocusTime > 0
                   ? formatTime(task.totalFocusTime)
                   : "00:00:00"}
@@ -255,8 +241,8 @@ export const TaskCard = memo(function TaskCard({
               className={cn(
                 "px-3 py-2 rounded text-center",
                 timerRunning
-                  ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
-                  : "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300"
+                  ? "bg-secondary text-foreground"
+                  : "bg-muted text-muted-foreground"
               )}
             >
               <div className="flex items-center justify-center gap-2">

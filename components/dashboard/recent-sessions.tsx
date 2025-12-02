@@ -21,6 +21,8 @@ interface RecentSessionsProps {
 }
 
 export function RecentSessions({ sessions }: RecentSessionsProps) {
+  const displaySessions = sessions.slice(0, 5);
+
   const formatDuration = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -31,38 +33,47 @@ export function RecentSessions({ sessions }: RecentSessionsProps) {
   };
 
   return (
-    <Card className="p-6 glass border-border/50">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-          <Clock className="w-5 h-5" />
-          Recent Focus Sessions
+    <Card className="p-6 glass border-border/50 h-full flex flex-col bg-card/50 backdrop-blur-sm hover:shadow-lg transition-all duration-300">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-lg font-bold text-foreground flex items-center gap-2 tracking-tight">
+          <div className="p-2 bg-emerald-500/10 rounded-lg">
+            <Clock className="w-5 h-5 text-emerald-500" />
+          </div>
+          Recent Sessions
         </h3>
-        <Link href="/dashboard/sessions">
-          <Button variant="ghost" size="sm">
+        <Link href="/dashboard/sessions" className="cursor-pointer">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="cursor-pointer hover:bg-emerald-500/10 hover:text-emerald-600 transition-colors"
+          >
             View All
           </Button>
         </Link>
       </div>
 
-      {sessions.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
-          <p className="text-sm">No sessions today</p>
-          <p className="text-xs mt-1">
+      {displaySessions.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground flex-1 flex flex-col justify-center items-center gap-2">
+          <div className="w-12 h-12 rounded-full bg-secondary/50 flex items-center justify-center mb-2">
+            <Timer className="w-6 h-6 text-muted-foreground/50" />
+          </div>
+          <p className="text-sm font-medium">No sessions today</p>
+          <p className="text-xs text-muted-foreground/70">
             Start focusing to track your progress! ⏱️
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {sessions.map((session) => (
+        <div className="space-y-3 flex-1">
+          {displaySessions.map((session) => (
             <div
               key={session.id}
-              className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50"
+              className="flex items-center gap-3 p-3 rounded-xl bg-secondary/30 hover:bg-secondary/80 transition-all duration-200 group border border-transparent hover:border-border/50"
             >
-              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                <Timer className="w-4 h-4 text-green-600 dark:text-green-400" />
+              <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg shadow-sm group-hover:scale-105 transition-transform">
+                <Timer className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">
+                <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
                   {session.task.title}
                 </p>
                 <p className="text-xs text-muted-foreground">
@@ -70,9 +81,11 @@ export function RecentSessions({ sessions }: RecentSessionsProps) {
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-sm font-bold text-green-600 dark:text-green-400">
-                  {formatDuration(session.duration)}
-                </p>
+                <div className="px-2 py-1 bg-background rounded-md shadow-sm border border-border/50">
+                  <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                    {formatDuration(session.duration)}
+                  </p>
+                </div>
               </div>
             </div>
           ))}

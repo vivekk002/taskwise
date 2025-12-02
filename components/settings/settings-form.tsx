@@ -5,8 +5,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
-import { Loader2, User, Lock } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { useTheme } from "next-themes";
+import { Loader2, User, Lock, Palette, Sun, Moon, Laptop } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +48,7 @@ const passwordFormSchema = z
 
 export function SettingsForm() {
   const { data: session, update } = useSession();
+  const { theme, setTheme } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
 
   const profileForm = useForm<z.infer<typeof profileFormSchema>>({
@@ -234,6 +236,54 @@ export function SettingsForm() {
               </Button>
             </form>
           </Form>
+        </CardContent>
+      </Card>
+
+      <Card className="glass border-border/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Palette className="h-5 w-5" />
+            Appearance
+          </CardTitle>
+          <CardDescription>
+            Customize the look and feel of the application.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="font-medium">Theme</p>
+              <p className="text-sm text-muted-foreground">
+                Select your preferred theme for the dashboard.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={theme === "light" ? "default" : "outline"}
+                onClick={() => setTheme("light")}
+                className="gap-2"
+              >
+                <Sun className="h-4 w-4" />
+                Light
+              </Button>
+              <Button
+                variant={theme === "dark" ? "default" : "outline"}
+                onClick={() => setTheme("dark")}
+                className="gap-2"
+              >
+                <Moon className="h-4 w-4" />
+                Dark
+              </Button>
+              <Button
+                variant={theme === "system" ? "default" : "outline"}
+                onClick={() => setTheme("system")}
+                className="gap-2"
+              >
+                <Laptop className="h-4 w-4" />
+                System
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

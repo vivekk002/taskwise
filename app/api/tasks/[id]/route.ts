@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { awardXP, updateStreak } from "@/lib/gamification";
 
 export async function GET(
   req: NextRequest,
@@ -68,6 +69,7 @@ export async function PUT(
       estimatedDuration,
       actualDuration,
       order,
+      categoryId,
     } = body;
 
     // Verify task ownership
@@ -96,6 +98,9 @@ export async function PUT(
         ...(estimatedDuration !== undefined && { estimatedDuration }),
         ...(actualDuration !== undefined && { actualDuration }),
         ...(order !== undefined && { order }),
+        ...(categoryId !== undefined && {
+          categoryId: categoryId === "none" ? null : categoryId,
+        }),
       },
       include: {
         focusSessions: true,
@@ -107,6 +112,12 @@ export async function PUT(
       (sum, session) => sum + session.duration,
       0
     );
+
+    // Gamification: Award XP if task is completed
+    if (completed === true && !existingTask.completed) {
+      await awardXP(session.user.id, 50); // 50 XP for completing a task
+      await updateStreak(session.user.id);
+    }
 
     return NextResponse.json({ ...task, totalFocusTime });
   } catch (error) {

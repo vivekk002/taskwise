@@ -63,8 +63,8 @@ export function SessionList() {
 
   if (error) {
     return (
-      <Card className="p-6 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
-        <p className="text-red-600 dark:text-red-400">Error: {error}</p>
+      <Card className="p-6 bg-destructive/10 border-destructive/20">
+        <p className="text-destructive">Error: {error}</p>
       </Card>
     );
   }
@@ -72,7 +72,7 @@ export function SessionList() {
   if (sessions.length === 0) {
     return (
       <Card className="p-12 text-center">
-        <p className="text-slate-600 dark:text-slate-400">
+        <p className="text-muted-foreground">
           No focus sessions found. Start a session to see it here!
         </p>
       </Card>
@@ -81,54 +81,37 @@ export function SessionList() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-        Session History
-      </h2>
+      <h2 className="text-2xl font-bold text-foreground">Session History</h2>
       {sessions.map((session) => (
-        <Card
-          key={session.id}
-          className="p-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
-        >
+        <Card key={session.id} className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                Task ID
-              </p>
-              <p className="font-medium text-slate-900 dark:text-white">
-                {session.taskId}
-              </p>
+              <p className="text-sm text-muted-foreground">Task ID</p>
+              <p className="font-medium text-foreground">{session.taskId}</p>
             </div>
             <div>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                Duration
-              </p>
-              <p className="font-medium text-slate-900 dark:text-white">
+              <p className="text-sm text-muted-foreground">Duration</p>
+              <p className="font-medium text-foreground">
                 {Math.round(session.duration / 60)} minutes
               </p>
             </div>
             <div>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                Started
-              </p>
-              <p className="font-medium text-slate-900 dark:text-white">
+              <p className="text-sm text-muted-foreground">Started</p>
+              <p className="font-medium text-foreground">
                 {new Date(session.startedAt).toLocaleString()}
               </p>
             </div>
             <div>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                Ended
-              </p>
-              <p className="font-medium text-slate-900 dark:text-white">
+              <p className="text-sm text-muted-foreground">Ended</p>
+              <p className="font-medium text-foreground">
                 {new Date(session.endedAt).toLocaleString()}
               </p>
             </div>
           </div>
           {session.notes && (
-            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                Notes
-              </p>
-              <p className="text-slate-900 dark:text-white">{session.notes}</p>
+            <div className="mt-4 pt-4 border-t border-border">
+              <p className="text-sm text-muted-foreground">Notes</p>
+              <p className="text-foreground">{session.notes}</p>
             </div>
           )}
         </Card>

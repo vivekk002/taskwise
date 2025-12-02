@@ -97,7 +97,13 @@ export function AnalyticsContainer() {
   }, [view]);
 
   const taskBreakdown = useMemo(() => {
-    const colors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+    const colors = [
+      "hsl(var(--foreground))",
+      "hsl(var(--muted-foreground))",
+      "hsl(var(--border))",
+      "hsl(var(--secondary-foreground))",
+      "hsl(var(--primary))",
+    ];
     return (
       overviewData?.topTasks?.map((task: any, idx: number) => ({
         name: task.title,
@@ -117,10 +123,8 @@ export function AnalyticsContainer() {
             Back to Dashboard
           </Button>
         </Link>
-        <h1 className="text-4xl font-bold text-slate-900 dark:text-white">
-          Focus Analytics
-        </h1>
-        <p className="text-slate-600 dark:text-slate-400 mt-2">
+        <h1 className="text-4xl font-bold text-foreground">Focus Analytics</h1>
+        <p className="text-muted-foreground mt-2">
           Detailed insights into your productivity
         </p>
       </div>
@@ -132,29 +136,29 @@ export function AnalyticsContainer() {
           hours={overviewData?.today?.hours ?? 0}
           minutes={overviewData?.today?.minutes ?? 0}
           icon="🔥"
-          color="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20"
+          color=""
         />
         <AnalyticsStatsCard
           title="This Week"
           hours={overviewData?.week?.hours ?? 0}
           minutes={overviewData?.week?.minutes ?? 0}
           icon="📊"
-          color="bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20"
+          color=""
         />
         <AnalyticsStatsCard
           title="This Month"
           hours={overviewData?.month?.hours ?? 0}
           minutes={overviewData?.month?.minutes ?? 0}
           icon="🎯"
-          color="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20"
+          color=""
         />
       </div>
 
       {/* Controls */}
-      <Card className="p-6 bg-slate-50 dark:bg-slate-800/50">
+      <Card className="p-6 bg-card">
         <div className="flex flex-wrap gap-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               View
             </label>
             <div className="flex gap-2">
@@ -172,7 +176,7 @@ export function AnalyticsContainer() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Chart Type
             </label>
             <div className="flex gap-2">
@@ -192,8 +196,8 @@ export function AnalyticsContainer() {
       </Card>
 
       {/* Main Chart */}
-      <Card className="p-6 bg-slate-50 dark:bg-slate-800/50">
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">
+      <Card className="p-6 bg-card">
+        <h2 className="text-xl font-bold text-foreground mb-6">
           Focus Time Trends
         </h2>
         <ResponsiveContainer width="100%" height={400}>
@@ -204,27 +208,27 @@ export function AnalyticsContainer() {
               <YAxis stroke="#94a3b8" />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "#1e293b",
-                  border: "1px solid #475569",
+                  backgroundColor: "hsl(var(--popover))",
+                  border: "1px solid hsl(var(--border))",
                   borderRadius: "8px",
-                  color: "#f1f5f9",
+                  color: "hsl(var(--popover-foreground))",
                 }}
               />
               <Legend />
               <Line
                 type="monotone"
                 dataKey="hours"
-                stroke="#3b82f6"
+                stroke="hsl(var(--foreground))"
                 strokeWidth={2}
-                dot={{ fill: "#3b82f6" }}
+                dot={{ fill: "hsl(var(--foreground))" }}
                 name="Hours"
               />
               <Line
                 type="monotone"
                 dataKey="sessions"
-                stroke="#10b981"
+                stroke="hsl(var(--muted-foreground))"
                 strokeWidth={2}
-                dot={{ fill: "#10b981" }}
+                dot={{ fill: "hsl(var(--muted-foreground))" }}
                 name="Sessions"
               />
             </LineChart>
@@ -235,22 +239,22 @@ export function AnalyticsContainer() {
               <YAxis stroke="#94a3b8" />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "#1e293b",
-                  border: "1px solid #475569",
+                  backgroundColor: "hsl(var(--popover))",
+                  border: "1px solid hsl(var(--border))",
                   borderRadius: "8px",
-                  color: "#f1f5f9",
+                  color: "hsl(var(--popover-foreground))",
                 }}
               />
               <Legend />
               <Bar
                 dataKey="hours"
-                fill="#3b82f6"
+                fill="hsl(var(--foreground))"
                 name="Hours"
                 radius={[8, 8, 0, 0]}
               />
               <Bar
                 dataKey="sessions"
-                fill="#10b981"
+                fill="hsl(var(--muted-foreground))"
                 name="Sessions"
                 radius={[8, 8, 0, 0]}
               />
@@ -262,10 +266,8 @@ export function AnalyticsContainer() {
       {/* Additional Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Task Breakdown */}
-        <Card className="p-6 bg-slate-50 dark:bg-slate-800/50">
-          <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6">
-            Top Tasks
-          </h3>
+        <Card className="p-6 bg-card">
+          <h3 className="text-xl font-bold text-foreground mb-6">Top Tasks</h3>
           {taskBreakdown.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
@@ -290,61 +292,49 @@ export function AnalyticsContainer() {
                     `${Math.floor(value / 60)}h ${value % 60}m`
                   }
                   contentStyle={{
-                    backgroundColor: "#1e293b",
-                    border: "1px solid #475569",
+                    backgroundColor: "hsl(var(--popover))",
+                    border: "1px solid hsl(var(--border))",
                     borderRadius: "8px",
-                    color: "#f1f5f9",
+                    color: "hsl(var(--popover-foreground))",
                   }}
                 />
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <p className="text-slate-600 dark:text-slate-400 text-center py-8">
+            <p className="text-muted-foreground text-center py-8">
               No task data available
             </p>
           )}
         </Card>
 
         {/* Summary Stats */}
-        <Card className="p-6 bg-slate-50 dark:bg-slate-800/50">
-          <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6">
-            Summary
-          </h3>
+        <Card className="p-6 bg-card">
+          <h3 className="text-xl font-bold text-foreground mb-6">Summary</h3>
           <div className="space-y-4">
             <div className="flex justify-between">
-              <span className="text-slate-600 dark:text-slate-400">
-                Total Sessions
-              </span>
-              <span className="font-bold text-slate-900 dark:text-white">
+              <span className="text-muted-foreground">Total Sessions</span>
+              <span className="font-bold text-foreground">
                 {overviewData?.totalSessions || 0}
               </span>
             </div>
-            <div className="border-t border-slate-200 dark:border-slate-700"></div>
+            <div className="border-t border-border"></div>
             <div className="flex justify-between">
-              <span className="text-slate-600 dark:text-slate-400">
-                Avg Session
-              </span>
-              <span className="font-bold text-slate-900 dark:text-white">
+              <span className="text-muted-foreground">Avg Session</span>
+              <span className="font-bold text-foreground">
                 {overviewData?.avgSessionMinutes || 0}m
               </span>
             </div>
-            <div className="border-t border-slate-200 dark:border-slate-700"></div>
+            <div className="border-t border-border"></div>
             <div className="flex justify-between">
-              <span className="text-slate-600 dark:text-slate-400">
-                Most Focused Task
-              </span>
-              <span className="font-bold text-slate-900 dark:text-white truncate">
+              <span className="text-muted-foreground">Most Focused Task</span>
+              <span className="font-bold text-foreground truncate">
                 {overviewData?.mostFocusedTask?.title || "N/A"}
               </span>
             </div>
-            <div className="border-t border-slate-200 dark:border-slate-700"></div>
+            <div className="border-t border-border"></div>
             <div className="flex justify-between">
-              <span className="text-slate-600 dark:text-slate-400">
-                Current Streak
-              </span>
-              <span className="font-bold text-slate-900 dark:text-white">
-                7 days 🔥
-              </span>
+              <span className="text-muted-foreground">Current Streak</span>
+              <span className="font-bold text-foreground">7 days 🔥</span>
             </div>
           </div>
         </Card>
