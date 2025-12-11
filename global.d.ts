@@ -1,0 +1,5 @@
+declare module "@/components/ui/*"
+declare module "@hookform/resolvers/zod"
+declare module "@radix-ui/react-dialog"
+declare module "lucide-react"
+declare module "next-themes/dist/types"
