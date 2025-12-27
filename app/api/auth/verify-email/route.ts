@@ -23,11 +23,7 @@ export async function GET(req: NextRequest) {
     await prisma.user.update({
       where: { id: user.id },
       data: {
-<<<<<<< HEAD
         emailVerified: new Date(),
-=======
-        emailVerified: true,
->>>>>>> origin/main
         verificationToken: null,
       },
     });

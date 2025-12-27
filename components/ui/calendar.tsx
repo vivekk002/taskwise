@@ -18,14 +18,10 @@ function Calendar({
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
-<<<<<<< HEAD
       className={cn(
         "p-3 bg-white dark:bg-zinc-950 text-popover-foreground border rounded-lg shadow-xl",
         className
       )}
-=======
-      className={cn("p-3", className)}
->>>>>>> origin/main
       classNames={{
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
         month: "space-y-4",

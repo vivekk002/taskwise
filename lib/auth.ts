@@ -3,17 +3,11 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
 import { prisma } from "@/lib/prisma";
-<<<<<<< HEAD
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
-=======
-import bcrypt from "bcryptjs";
-
-export const authOptions: NextAuthOptions = {
->>>>>>> origin/main
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -36,19 +30,11 @@ export const authOptions: NextAuthOptions = {
           throw new Error("No account found with this email");
         }
 
-<<<<<<< HEAD
         if (!user.emailVerified) {
           console.log("Not Verified");
 
           throw new Error("EmailNotVerified");
         }
-=======
-        // if (!user.emailVerified) {
-        //   console.log("Not Verified");
-
-        //   throw new Error("EmailNotVerified");
-        // }
->>>>>>> origin/main
 
         if (!user.password) {
           throw new Error(

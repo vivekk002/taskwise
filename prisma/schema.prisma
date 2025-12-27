@@ -12,11 +12,7 @@ model User {
   email             String    @unique
   name              String?
   password          String
-<<<<<<< HEAD
   emailVerified     DateTime?
-=======
-  emailVerified     Boolean   @default(false)
->>>>>>> origin/main
   verificationToken String?   @unique
   accounts          Account[]
   sessions          Session[]

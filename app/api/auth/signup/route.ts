@@ -36,11 +36,7 @@ export async function POST(req: NextRequest) {
         email,
         name,
         password: hashedPassword,
-<<<<<<< HEAD
         emailVerified: null,
-=======
-        emailVerified: false,
->>>>>>> origin/main
         verificationToken,
       },
     });
